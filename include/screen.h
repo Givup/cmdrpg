@@ -49,7 +49,7 @@ extern int free_screen(Screen*);
 extern void show_cursor(Screen*, BOOL);
 
 // Screen pointer, string, Colors, x, y, alignment
-extern void print_string(Screen*, const char*, WORD, int, int, int);
+extern int print_string(Screen*, const char*, WORD, int, int, int);
 
 extern void print_console(Screen*);
 

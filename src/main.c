@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <conio.h>
 
 #include "screen.h"
 #include "map.h"
@@ -36,12 +37,36 @@ int main(int argc, char** argv) {
 
   print_map(&map, &screen);
   print_console(&screen);
+
+  int changed;
   while(1) {
+    if(window_handle != GetForegroundWindow()) continue;
+
+    _getch(); // To capture the input to console
+
+    changed = 0;
+
     if(GetKeyState(VK_SPACE) & 0x8000) {
-      if(window_handle == GetForegroundWindow()) {
-	break;
-      }
+      break;
     }
+
+    if(GetKeyState(0x57) & 0x8000) {
+      changed |= print_string(&screen, "W", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    }
+    else if(GetKeyState(0x41) & 0x8000) {
+      changed |= print_string(&screen, "A", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    }
+    else if(GetKeyState(0x53) & 0x8000) {
+      changed |= print_string(&screen, "S", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    }
+    else if(GetKeyState(0x44) & 0x8000) {
+      changed |= print_string(&screen, "D", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    }
+
+    if(changed) {
+      print_console(&screen);
+    }
+
     Sleep(10);
   }
 

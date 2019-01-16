@@ -55,6 +55,7 @@ int create_screen(Screen* screen, int w, int h) {
 int free_screen(Screen* screen) {
   free(screen->buffer);
   CloseHandle(screen->console_handle);
+  SetConsoleActiveScreenBuffer(NULL);
 };
  
 void show_cursor(Screen* screen, BOOL state) {
@@ -76,7 +77,7 @@ int get_char_offset(const char* str, int align) {
   }
 };
 
-void print_string(Screen* screen, const char* str, WORD attr, int x, int y, int align) {
+int print_string(Screen* screen, const char* str, WORD attr, int x, int y, int align) {
   int char_offset = get_char_offset(str, align);
   int base_index = y * screen->width + x + char_offset;
   int offset = 0;
@@ -96,6 +97,7 @@ void print_string(Screen* screen, const char* str, WORD attr, int x, int y, int 
     offset++;
     str++;
   }
+  return offset;
 };
 
 void print_console(Screen* screen) {
