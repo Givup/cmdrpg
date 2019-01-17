@@ -56,6 +56,7 @@ int free_screen(Screen* screen) {
   free(screen->buffer);
   CloseHandle(screen->console_handle);
   SetConsoleActiveScreenBuffer(NULL);
+  return 0;
 };
  
 void show_cursor(Screen* screen, BOOL state) {

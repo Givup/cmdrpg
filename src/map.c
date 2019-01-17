@@ -73,8 +73,6 @@ void create_map(Map* map, int w, int h) {
     float y = (float)(i / w) * step / (float)h + y_offset;
     float n = -(noise(x, y, (float)w / (float)h)) * 2.0f; // Range [-1.0f : 1.0f]
 
-    printf("%.010f\n", f_abs(n));
-
     if(f_abs(n) < 0.2f) {
       map->tiles[i] = TILE_WATER;
     }

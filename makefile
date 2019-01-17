@@ -1,10 +1,11 @@
-CC=../tcc/tcc.exe
-LIBS=-luser32 -lkernel32
+CC=gcc
+LIBS=-luser32 -lkernel32 -lwinmm
+DEPS=
 SOURCE=./src/map.c ./src/screen.c ./src/perlin.c ./src/main.c
 INCLUDES=-Iinclude
 
 build:
-	$(CC) -Wall -o program.exe $(INCLUDES) $(SOURCE) $(LIBS)
+	$(CC) $(DEPS) -Wall -o program.exe $(INCLUDES) $(SOURCE) $(LIBS)
 
 run: build
 	./program.exe
