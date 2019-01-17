@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <conio.h>
 
+#include "perlin.h"
 #include "screen.h"
 #include "map.h"
 
@@ -19,6 +20,8 @@ int randomi(int limit) {
 };
 
 int main(int argc, char** argv) {
+
+  load_permutation("perlin_seed");
 
   HWND window_handle = GetForegroundWindow();
   
