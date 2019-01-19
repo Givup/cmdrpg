@@ -30,6 +30,8 @@ extern int get_foreground_of_map_at(Map*, int, int);
 extern void generate_map(Map*, int, int, int, int);
 extern int  generate_biome_at(Map*, int, int);
 
+extern int can_move_to(Map*, int, int);
+
 extern void clear_entities(Map*);
 
 #endif

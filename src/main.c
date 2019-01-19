@@ -110,11 +110,8 @@ int main(int argc, char** argv) {
   show_cursor(&screen, FALSE);
 
   Map map;
-  create_map(&map, SW, SH);
-  generate_map(&map, 0, 0, SW, SH);
-
-  //print_map(&map, &screen);
-  //print_console(&screen);
+  create_map(&map, SW, SH - 2);
+  generate_map(&map, 0, 0, map.width, map.height);
 
   int can_move_x = 0;
   int can_move_y = 0;
@@ -130,6 +127,8 @@ int main(int argc, char** argv) {
   int mode = MODE_WORLD;
   int space_last = 0;
 
+  int d_x = 0, d_y = 0;
+
   while(1) {
     if(window_handle != GetForegroundWindow()) continue;
 
@@ -142,11 +141,11 @@ int main(int argc, char** argv) {
 
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
       if(mode == MODE_WORLD) {
-	if(generate_biome_at(&map, SW / 2, SH / 2)) {
+	if(generate_biome_at(&map, map.width / 2, map.height / 2)) {
 	  map_x = px;
 	  map_y = py;
-	  px = SW / 2;
-	  py = SH / 2;
+	  px = map.width / 2;
+	  py = map.height / 2;
 	  mode = MODE_BIOME;
 	}
       } else {
@@ -160,52 +159,59 @@ int main(int argc, char** argv) {
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
     if(GetKeyState(0x57) & 0x8000 && can_move_y <= 0) {
-      //changed |= print_string(&screen, "W", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
-      py--;
+      d_y = -1;
       changed = 1;
     }
     if(GetKeyState(0x41) & 0x8000 && can_move_x <= 0) {
-      //changed |= print_string(&screen, "A", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
-      px--;
+      d_x = -1;
       changed = 1;
     }
     if(GetKeyState(0x53) & 0x8000 && can_move_y <= 0) {
-      //changed |= print_string(&screen, "S", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
-      py++;
+      d_y = 1;
       changed = 1;
     }
     if(GetKeyState(0x44) & 0x8000 && can_move_x <= 0) {
-      //changed |= print_string(&screen, "D", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
-      px++;
+      d_x = 1;
       changed = 1;
     }
 
-    if(mode == MODE_BIOME) {
-      px = (px + SW) % SW;
-      py = (py + SH) % SH;
+    if(mode == MODE_WORLD) {
+      px += d_x;
+      py += d_y;
     }
+    else if(mode == MODE_BIOME) {
+      if(can_move_to(&map, px + d_x, py + d_y)) {
+	px += d_x;
+	py += d_y;
+      }
+      px = (px + map.width) % map.width;
+      py = (py + map.height) % map.height;
+    }
+
+    d_x = d_y = 0;
 
     if(changed) {
       changed = 0;
-      can_move_x = 9;
-      can_move_y = 12;
+      can_move_x = 12;
+      can_move_y = 16;
 
       if(mode == MODE_WORLD) {
-	generate_map(&map, px - SW / 2, py - SH / 2, SW, SH);
+	generate_map(&map, px - map.width / 2, py - map.height / 2, map.width, map.height);
 	print_map(&map, &screen);
-	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, SW / 2, SH / 2), SW / 2, SH / 2, ALIGN_LEFT);
+	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, map.width / 2, map.height / 2), map.width / 2, map.height / 2, ALIGN_LEFT);
       }
       else {
 	print_map(&map, &screen);
 	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, px, py), px, py, ALIGN_LEFT);
       }
 
+      char buffer[SW + 1];
+      memset(buffer, ' ', SW);
+      buffer[SW] = 0;
+      print_string(&screen, buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
+      print_string(&screen, buffer, FG_WHITE | BG_BLACK, 0, SH - 1, ALIGN_LEFT);
 
       print_console(&screen);
-
-      char buf[32];
-      sprintf(buf, "[%d,%d]       ", px, py);
-      print_string(&screen, buf, FG_BLACK | BG_WHITE, 0, 0, ALIGN_LEFT);
     }
 
     Sleep(10);

@@ -95,8 +95,8 @@ float f_abs(float v) {
 void create_biome_pool(Map* map, int tile, int* pool, int pool_count) {
   BiomeEntityPool* bpool = &map->biome_pools[tile - 1];
   bpool->pool_size = pool_count;
-  bpool->pool = (int*)malloc(sizeof(int) * pool_count);
-  memcpy(bpool->pool, pool, pool_count * sizeof(int));
+  bpool->pool = (int*)malloc(sizeof(int) * pool_count * 2);
+  memcpy(bpool->pool, pool, sizeof(int) * pool_count *  2);
 };
 
 void create_map(Map* map, int w, int h) {
@@ -105,7 +105,7 @@ void create_map(Map* map, int w, int h) {
   map->tiles = (int*)malloc(sizeof(int) * w * h);
   map->entities = (int*)malloc(sizeof(int) * w * h);
 
-  for(int i = 0;i < w * h;i++) {
+  for(int i = 0;i < w * h; i++) {
     map->tiles[i] = TILE_UNDEF;
     map->entities[i] = ENTITY_UNDEF;
   }
@@ -116,8 +116,8 @@ void create_map(Map* map, int w, int h) {
   }
   map->pool_count = TILE_COUNT;
   
-  int sand_pool[] = { ENTITY_CACTUS, ENTITY_SCRUB };
-  create_biome_pool(map, TILE_SAND, sand_pool, sizeof(sand_pool) / sizeof(int));
+  int sand_pool[] = { ENTITY_CACTUS, 100, ENTITY_SCRUB, 100 };
+  create_biome_pool(map, TILE_SAND, sand_pool, sizeof(sand_pool) / sizeof(int) / 2);
 };
 
 void free_biome_pool(BiomeEntityPool* pool) {
@@ -128,7 +128,7 @@ void free_map(Map* map) {
   free(map->tiles);
   free(map->entities);
 
-  for(int bp = 0;bp < map->pool_count; bp++) {
+  for(int bp = 0;bp < map->pool_count; bp += 2) {
     free_biome_pool(&map->biome_pools[bp]);
   }
   free(map->biome_pools);
@@ -204,8 +204,11 @@ void populate_biome(Map* map, int biome_tile) {
 
   for(int y = 0;y < map->height;y++) {
     for(int x = 0;x < map->width;x++) {
-      if(randomi(1000) > 950) {
-	int entity = entity_pool[randomi(n_entity_pool)];
+      if(x == map->width / 2 && y == map->height / 2) continue;
+      int r = randomi(n_entity_pool) * 2;
+      int entity = entity_pool[r];
+      int chance = entity_pool[r + 1];
+      if(randomi(1000) >= (1000 - chance)) {
 	map->entities[x + y * map->width] = entity;
       }
     }
@@ -223,6 +226,10 @@ int generate_biome_at(Map* map, int _x, int _y) {
     return 1;
   }
   return 0;
+};
+
+int can_move_to(Map* map, int x, int y) {
+  return map->entities[x + y * map->width] == ENTITY_UNDEF;
 };
 
 void clear_entities(Map* map) {
