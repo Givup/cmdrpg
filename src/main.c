@@ -51,6 +51,11 @@ char* generate_sawtooth(int t0, int num_steps, int mod) {
   return data;
 };
 
+typedef struct {
+  int wet;
+  int bleeding;
+} Status;
+
 int main(int argc, char** argv) {
 
   WORD channels = 1;
@@ -107,17 +112,23 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  char line_buffer[SW + 1];
+  memset(line_buffer, ' ', SW);
+  line_buffer[SW] = 0;
+
   show_cursor(&screen, FALSE);
 
   Map map;
   create_map(&map, SW, SH - 2);
   generate_map(&map, 0, 0, map.width, map.height);
 
-  int can_move_x = 0;
-  int can_move_y = 0;
+  int can_move = 0;
 
   int map_x, map_y;
   int px = -100, py = 0;
+
+  Status status;
+  status.wet = 0;
 
   int changed = 1;
 
@@ -132,8 +143,7 @@ int main(int argc, char** argv) {
   while(1) {
     if(window_handle != GetForegroundWindow()) continue;
 
-    can_move_x -= can_move_x > 0 ? 1 : 0;
-    can_move_y -= can_move_y > 0 ? 1 : 0;
+    can_move -= can_move > 0 ? 1 : 0;
 
     if(GetKeyState(VK_ESCAPE) & 0x8000) {
       break;
@@ -158,19 +168,19 @@ int main(int argc, char** argv) {
     }
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
-    if(GetKeyState(0x57) & 0x8000 && can_move_y <= 0) {
+    if(GetKeyState(0x57) & 0x8000 && can_move <= 0) {
       d_y = -1;
       changed = 1;
     }
-    if(GetKeyState(0x41) & 0x8000 && can_move_x <= 0) {
+    if(GetKeyState(0x41) & 0x8000 && can_move <= 0) {
       d_x = -1;
       changed = 1;
     }
-    if(GetKeyState(0x53) & 0x8000 && can_move_y <= 0) {
+    if(GetKeyState(0x53) & 0x8000 && can_move <= 0) {
       d_y = 1;
       changed = 1;
     }
-    if(GetKeyState(0x44) & 0x8000 && can_move_x <= 0) {
+    if(GetKeyState(0x44) & 0x8000 && can_move <= 0) {
       d_x = 1;
       changed = 1;
     }
@@ -178,12 +188,11 @@ int main(int argc, char** argv) {
     if(mode == MODE_WORLD) {
       px += d_x;
       py += d_y;
-    }
+    } 
     else if(mode == MODE_BIOME) {
-      if(can_move_to(&map, px + d_x, py + d_y)) {
-	px += d_x;
-	py += d_y;
-      }
+      if(can_move_to(&map, (px + d_x + map.width) % map.width, py)) px += d_x;
+      if(can_move_to(&map, px, (py + d_y + map.height) % map.height)) py += d_y;
+
       px = (px + map.width) % map.width;
       py = (py + map.height) % map.height;
     }
@@ -192,8 +201,6 @@ int main(int argc, char** argv) {
 
     if(changed) {
       changed = 0;
-      can_move_x = 12;
-      can_move_y = 16;
 
       if(mode == MODE_WORLD) {
 	generate_map(&map, px - map.width / 2, py - map.height / 2, map.width, map.height);
@@ -203,13 +210,35 @@ int main(int argc, char** argv) {
       else {
 	print_map(&map, &screen);
 	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, px, py), px, py, ALIGN_LEFT);
+
+	if(get_tile_at(&map, 0, 0) == TILE_MOUNTAIN) {
+	  set_entity(&map, px, py, ENTITY_WALKED_SNOW);
+	}
       }
 
-      char buffer[SW + 1];
-      memset(buffer, ' ', SW);
-      buffer[SW] = 0;
-      print_string(&screen, buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
-      print_string(&screen, buffer, FG_WHITE | BG_BLACK, 0, SH - 1, ALIGN_LEFT);
+      if(mode == MODE_WORLD) {
+	status.wet += get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 2 : status.wet > 0 ? -1 : 0;
+      }
+
+      int penalty = 1;
+      if(mode == MODE_WORLD) {
+	penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
+      }
+
+      can_move = 6 * penalty;
+
+      int print_len;
+      if(mode == MODE_BIOME) {
+	print_len = snprintf(line_buffer, SW, "Current biome: %s", get_biome_name(get_tile_at(&map, px, py)));
+      } else {
+	print_len = snprintf(line_buffer, SW, "Current biome: %s", get_biome_name(get_tile_at(&map, map.width / 2, map.height / 2)));
+      }
+      memset(line_buffer + print_len, ' ', SW - print_len);
+      print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
+
+      print_len = snprintf(line_buffer, SW, "Status: [%s]", status.wet > 0 ? "Wet": "Dry");
+      memset(line_buffer + print_len, ' ', SW - print_len);
+      print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 1, ALIGN_LEFT);
 
       print_console(&screen);
     }

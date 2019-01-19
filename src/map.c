@@ -3,20 +3,6 @@
 
 #include <stdlib.h>
 
-#define TILE_UNDEF    0
-#define TILE_GRASS    1
-#define TILE_GROUND   2
-#define TILE_WATER    3
-#define TILE_SAND     4
-#define TILE_FOREST   5
-#define TILE_ROCK     6
-#define TILE_MOUNTAIN 7
-#define TILE_COUNT    8
-
-#define ENTITY_UNDEF  0
-#define ENTITY_CACTUS 1
-#define ENTITY_SCRUB  2
-
 extern float randomf();
 extern float randombif();
 extern unsigned int randomi(int);
@@ -24,16 +10,17 @@ extern unsigned int randomi_range(int, int);
 
 const char* get_tile_str(int tile) {
   switch(tile) {
-  case TILE_FOREST: return "\235";
 
+  case TILE_GROUND:
   case TILE_ROCK:
-  case TILE_SAND:
-  case TILE_GROUND: return "\260";
+  case TILE_SAND: return "\260";
 
+  case TILE_FOREST:
   case TILE_GRASS:  return "\261";
 
-  case TILE_MOUNTAIN:
   case TILE_WATER:  return "\262";
+
+  case TILE_MOUNTAIN: return "\333";
 
   default: return ".";
   }
@@ -41,11 +28,11 @@ const char* get_tile_str(int tile) {
 
 WORD get_tile_attributes(int tile) {
   switch(tile) {
-  case TILE_GRASS: return FG_LIGHT_GREEN | BG_GREEN;
-  case TILE_GROUND: return FG_BLACK | BG_GRAY;
+  case TILE_GRASS: return BG_LIGHT_GREEN | FG_GREEN;
+  case TILE_GROUND: return FG_LIGHT_RED | BG_GRAY;
   case TILE_WATER: return FG_LIGHT_BLUE | BG_BLUE;
   case TILE_SAND: return FG_YELLOW | BG_LIGHT_YELLOW;
-  case TILE_FOREST: return FG_GREEN | BG_LIGHT_GREEN;
+  case TILE_FOREST: return FG_LIGHT_GREEN | BG_GREEN;
   case TILE_ROCK: return FG_LIGHT_GRAY | BG_GRAY;
   case TILE_MOUNTAIN: return FG_WHITE | BG_LIGHT_GRAY;
   default: return FG_MAGENTA;
@@ -56,6 +43,7 @@ const char* get_entity_str(int entity) {
   switch(entity) {
   case ENTITY_CACTUS: return "f";
   case ENTITY_SCRUB: return "*";
+  case ENTITY_WALKED_SNOW: return "\260";
   default: return " ";
   };
 };
@@ -64,6 +52,7 @@ WORD get_entity_attributes(int entity) {
   switch(entity) {
   case ENTITY_CACTUS: return FG_LIGHT_GREEN;
   case ENTITY_SCRUB: return FG_RED;
+  case ENTITY_WALKED_SNOW: return FG_WHITE;
   default: return FG_MAGENTA | BG_MAGENTA;
   }
 };
@@ -148,6 +137,41 @@ int get_foreground_of_map_at(Map* map, int x, int y) {
   return get_tile_attributes(map->tiles[x + y * map->width]) & 0x0F;
 };
 
+const char* get_biome_name(int biome) {
+  switch(biome) {
+  case TILE_GRASS: return "Grasslands";
+  case TILE_GROUND: return "Flatlands";
+  case TILE_WATER: return "Water . . .";
+  case TILE_SAND: return "Beach";
+  case TILE_FOREST: return "Thick forest";
+  case TILE_ROCK: return "Mountain";
+  case TILE_MOUNTAIN: return "Snowy Mountain";
+  default: return "Void";
+  };
+};
+
+int get_tile_at(Map* map, int x, int y) {
+  if(x < 0 || x >= map->width || y < 0 || y >= map->height) return TILE_UNDEF;
+  return map->tiles[x + y * map->width];
+};
+
+int get_tile_traverse_penalty(Map* map, int tile) {
+  switch(tile) {
+  case TILE_ROCK:
+  case TILE_FOREST:
+    return 2;
+  case TILE_WATER:
+    return 3;
+  case TILE_MOUNTAIN:
+    return 4;
+  default: return 1;
+  };
+};
+
+void set_entity(Map* map, int x, int y, int entity_id) {
+  map->entities[x + y * map->width] = entity_id;
+};
+
 void generate_map(Map* map, int x, int y, int w, int h) {
   float step = 3.0f;
   float x_offset = (float)x * step;
@@ -162,7 +186,7 @@ void generate_map(Map* map, int x, int y, int w, int h) {
     if(f_abs(n) < 0.075f) {
       map->tiles[i] = TILE_WATER;
     }
-    else if(f_abs(n) < 0.1f) {
+    else if(f_abs(n) < 0.15f) {
       map->tiles[i] = TILE_SAND;
     }
     else if(f_abs(n) < 0.5f) {
@@ -229,7 +253,14 @@ int generate_biome_at(Map* map, int _x, int _y) {
 };
 
 int can_move_to(Map* map, int x, int y) {
-  return map->entities[x + y * map->width] == ENTITY_UNDEF;
+  int entity = map->entities[x + y * map->width];
+  switch(entity) {
+
+  case ENTITY_SCRUB:
+  case ENTITY_CACTUS: return 0;
+
+  default: return 1;
+  }
 };
 
 void clear_entities(Map* map) {
