@@ -173,7 +173,7 @@ void set_entity(Map* map, int x, int y, int entity_id) {
 };
 
 void generate_map(Map* map, int x, int y, int w, int h) {
-  float step = 3.0f;
+  float step = 1.0f;
   float x_offset = (float)x * step;
   float y_offset = (float)y * step;
 
@@ -189,7 +189,7 @@ void generate_map(Map* map, int x, int y, int w, int h) {
     else if(f_abs(n) < 0.15f) {
       map->tiles[i] = TILE_SAND;
     }
-    else if(f_abs(n) < 0.5f) {
+    else if(n >= 0.15f && n < 0.5f) {
       map->tiles[i] = TILE_GROUND;
     }
     else if(n >= 0.5f && n < 0.7f) {
@@ -201,10 +201,10 @@ void generate_map(Map* map, int x, int y, int w, int h) {
     else if(n >= 0.99f) {
       map->tiles[i] = TILE_MOUNTAIN;
     }
-    else if(n <= -0.5f && n > -0.9f) {
+    else if(n <= -0.15f && n > -0.8f) {
       map->tiles[i] = TILE_GRASS;
     }
-    else if(n <= -0.9f) {
+    else if(n <= -0.8f) {
       map->tiles[i] = TILE_FOREST;
     }
     else {

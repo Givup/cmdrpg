@@ -1,5 +1,6 @@
 #include "status.h"
 
+#include "core.h"
 #include "map.h"
 #include "screen.h"
 
@@ -41,9 +42,82 @@ int get_tile_temp(int tile) {
 WORD get_temp_attributes(int temp) {
   if(temp < 0) {
     return FG_CYAN;
-  }
-  else {
+  } else if(temp > 20) {
     return FG_LIGHT_RED;
+  } else {
+    return FG_WHITE;
   }
+};
+
+void init_status(Status* status, int hp, int hunger, int thirst) {
+  status->hp = hp;
+  status->max_hp = hp;
+  status->hunger = hunger;
+  status->max_hunger = hunger;
+  status->thirst = thirst;
+  status->max_thirst = thirst;
+  
+}
+
+void apply_status(const Status a, Status* b) {
+  int temp_d = a.temp - b->temp;
+  b->wet += a.wet;
+  b->bleeding += a.bleeding;
+  b->temp += temp_d > 0 ? 1 : temp_d < 0 ? -1 : 0;
+};
+
+void tick_status(Status* status) {
+  // Infection if bleeding and wet
+  if(status->wet && status->bleeding && randomi(1000) > 990) {
+    status->infected += 1;
+  }
+
+  // Hypothermia if cold
+  if(status->temp < 0) {
+    if(randomi(1000) > 1000 + status->temp * (status->wet > 0 ? 2 : 1)) {
+      status->hypothermia += 1;
+    }
+  } // Hypothermia gets better if not cold anymore
+  else {
+    if(randomi(2) > 0) {
+      status->hypothermia -= status->hypothermia > 0 ? 1 : 0;
+    }
+  }
+
+  // Hypothermia inflicted damage
+  if(status->hypothermia > 0) {
+    if(randomi(1000) > 750) {
+      status->hp--;
+    }
+  }
+
+  // Bleed damage / bleed gets better
+  if(status->bleeding) {
+    if(randomi(1000) > 900) {
+      status->bleeding -= status->bleeding > 0 ? 1 : 0;
+    }
+    if(randomi(1000) > 990) {
+      status->hp--;
+    }
+  }
+
+  // Infection hurts, needs to be treated to be healed
+  if(status->infected) {
+    if(randomi(1000) > 950) {
+      status->hp--;
+    }
+  }
+
+  status->hunger--;
+
+  if(status->temp > 30) {
+    status->thirst--;
+  }
+  status->thirst--;
+
+  // So anything doesn't go below 0
+  if(status->hp < 0) status->hp = 0;
+  if(status->hunger < 0) status->hunger = 0;
+  if(status->thirst < 0) status->thirst = 0;
 };
 

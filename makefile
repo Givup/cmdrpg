@@ -1,7 +1,7 @@
 CC=gcc
 LIBS=-luser32 -lkernel32 -lwinmm
 DEPS=
-SOURCE=./src/map.c ./src/screen.c ./src/perlin.c ./src/status.c
+SOURCE=./src/map.c ./src/screen.c ./src/perlin.c ./src/status.c ./src/core.c
 MAIN=./src/main.c
 INCLUDES=-Iinclude
 

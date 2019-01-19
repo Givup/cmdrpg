@@ -5,6 +5,8 @@
 
 typedef struct {
   int hp, max_hp;
+  int hunger, max_hunger;
+  int thirst, max_thirst;
   int temp;
   int wet;
   int bleeding;
@@ -12,7 +14,15 @@ typedef struct {
   int hypothermia;
 } Status;
 
+extern void init_status(Status*, int, int, int);
+
 extern const char* get_temp_description(int);
 extern int get_tile_temp(int);
 extern WORD get_temp_attributes(int);
+
+extern void apply_status(const Status a, Status* b);
+extern void tick_status(Status* status);
+
 #endif
+
+ 

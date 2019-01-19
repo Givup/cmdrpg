@@ -3,30 +3,25 @@
 #include <stdlib.h>
 #include <conio.h>
 
+#include "core.h"
 #include "perlin.h"
 #include "screen.h"
 #include "map.h"
 #include "status.h"
 
+// Macros
+#define STAT_PRINT(y, format, ...) snprintf(stat_buffer + y * (CSW + 1), CSW, format, __VA_ARGS__);
+
+#define STATUS_LINE_PRINT(color, y, format, ...) print_len = snprintf(line_buffer, SW - printed, format, __VA_ARGS__); \
+  printed += print_string(&screen, line_buffer, color, printed, y, ALIGN_LEFT); \
+
+// Screen width and height
 #define SW 120
 #define SH 40
 
-float randomf() {
-  return (float)rand() / (float)RAND_MAX;
-};
-
-float randombif() {
-  return (randomf() - 0.5f) * 2.0f;
-};
-
-unsigned int randomi(unsigned int limit) {
-  return rand() % limit;
-};
-
-unsigned int randomi_range(unsigned int min, unsigned int max) {
-  if(max <= min) return 0;
-  return randomi(max - min) + min;
-};
+// Character sheet width and height
+#define CSW 30
+#define CSH (SH - 2)
 
 int IsFormatSupported(WAVEFORMATEX format, UINT device) {
   return waveOutOpen(NULL, device, &format, (DWORD_PTR)NULL, 0, WAVE_FORMAT_QUERY ) == MMSYSERR_NOERROR ? 1 : 0;
@@ -124,17 +119,16 @@ int main(int argc, char** argv) {
   int px = -100, py = 0;
 
   Status status = { 0 };
-  status.max_hp = 25;
-  status.hp = status.max_hp;
-  status.temp = 20;
+  init_status(&status, 25, 2500, 2500);
 
-  int changed = 1;
+  int should_tick = 1, should_render = 1;
 
   const int MODE_WORLD = 0;
   const int MODE_BIOME = 1;
 
+  int show_character_sheet = 0;
   int mode = MODE_WORLD;
-  int space_last = 0;
+  int space_last = 0, c_last = 0;
 
   int d_x = 0, d_y = 0;
 
@@ -156,6 +150,11 @@ int main(int argc, char** argv) {
       break;
     }
 
+    if(GetKeyState(0x43) & 0x8000 && c_last == 0) {
+      show_character_sheet = ~show_character_sheet & 1;
+      should_render = 1;
+    } c_last = GetKeyState(0x43) & 0x8000;
+
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
       if(mode == MODE_WORLD) {
 	if(generate_biome_at(&map, map.width / 2, map.height / 2)) {
@@ -171,7 +170,7 @@ int main(int argc, char** argv) {
 	mode = MODE_WORLD;
 	clear_entities(&map);
       }
-      changed = 1;
+      should_tick = 1;
     }
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
@@ -193,7 +192,7 @@ int main(int argc, char** argv) {
       px += d_x;
       py += d_y;
 
-      if(d_x != 0 || d_y != 0) changed = 1;
+      if(d_x != 0 || d_y != 0) should_tick = 1;
 
       env_status.temp = get_tile_temp(get_tile_at(&map, map.width / 2, map.height / 2));
     } 
@@ -204,11 +203,11 @@ int main(int argc, char** argv) {
 
 	if(can_move_to(&map, (px + d_x + map.width) % map.width, py)) {
 	  px += d_x;
-	  changed = 1;
+	  should_tick = 1;
 	}
 	if(can_move_to(&map, px, (py + d_y + map.height) % map.height)) {
 	  py += d_y;
-	  changed = 1;
+	  should_tick = 1;
 	}
 
 	px = (px + map.width) % map.width;
@@ -220,14 +219,32 @@ int main(int argc, char** argv) {
 
     d_x = d_y = 0;
 
-    if(changed) {
-      changed = 0;
+    if(should_render | should_tick) {
 
-      int temp_d = env_status.temp - status.temp;
-      status.wet += env_status.wet;
-      status.bleeding += env_status.bleeding;
-      status.temp += temp_d > 0 ? 1 : temp_d < 0 ? -1 : 0;
+      if(should_tick) {
+	apply_status(env_status, &status); // Apply environment status to player
 
+	if(mode == MODE_WORLD) {
+	  int wetness = get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 5 : 0;
+	  if(wetness > 0) {
+	    status.wet += wetness;
+	  } else {
+	    if(status.temp > 0) {
+	      if(status.wet > 0) status.wet -= 1;
+	    }
+	  }
+	}
+
+	tick_status(&status);
+
+	int penalty = 1;
+	if(mode == MODE_WORLD) {
+	  penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
+	}
+	can_move = 6 * penalty;
+      }
+
+      // Rendering world map
       if(mode == MODE_WORLD) {
 	generate_map(&map, px - map.width / 2, py - map.height / 2, map.width, map.height);
 	print_map(&map, &screen);
@@ -242,82 +259,85 @@ int main(int argc, char** argv) {
 	}
       }
 
-      if(mode == MODE_WORLD) {
-	int wetness = get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 2 : 0;
-	if(wetness > 0) {
-	  status.wet += wetness;
-	} else {
-	  if(status.temp > 0) {
-	    if(status.wet > 0) status.wet -= 1;
+      // Rendering *UI*
+      int print_len;
+      int world_x, world_y;
+      if(mode == MODE_BIOME) {
+	world_x = px;
+	world_y = py;
+      } else {
+	world_x = map.width / 2;
+	world_y = map.height / 2;
+      }
+
+      // Print current biome
+      print_len = snprintf(line_buffer, SW, "Current biome: %s", get_biome_name(get_tile_at(&map, world_x, world_y)));
+      memset(line_buffer + print_len, ' ', SW - print_len);
+      print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
+
+      // Print current health for faster seeing than character sheet
+      snprintf(line_buffer, SW, "HP: %d/%d", status.hp, status.max_hp);
+      print_string(&screen, line_buffer, FG_LIGHT_RED, SW, SH - 2, ALIGN_RIGHT);
+
+      // Print all the status effects, colored
+      int printed = 0;
+
+      // Clear line
+      memset(line_buffer, ' ', SW);
+      print_string(&screen, line_buffer, FG_BLACK, 0, SH - 1, ALIGN_LEFT);
+
+      printed += print_string(&screen, "Status: [", FG_WHITE, 0, SH - 1, ALIGN_LEFT);
+
+      STATUS_LINE_PRINT(status.wet > 0 ? FG_TURQUOISE : FG_YELLOW, SH - 1, "%s", status.wet > 0 ? "Wet" : "Dry");
+
+      if(status.hypothermia <= 0) {
+	STATUS_LINE_PRINT(status.temp > 30 ? FG_RED : status.temp < 0 ? FG_CYAN : FG_WHITE, SH - 1, "%s", status.temp < 0 ? " Cold" : status.temp > 30 ? " Hot" : "");
+      } else {
+	STATUS_LINE_PRINT(FG_CYAN, SH - 1, "%s", status.hypothermia ? " Hypothermia" : "");
+      }
+
+      STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, "%s", status.bleeding > 10 ? " Profusely Bleeding" : status.bleeding > 0 ? " Bleeding" : "");
+
+      STATUS_LINE_PRINT(FG_RED, SH - 1, "%s", status.infected > 0 ? " Infected" : "");
+
+      print_string(&screen, "]", FG_WHITE, printed, SH - 1, ALIGN_LEFT);
+
+      // Temperature
+      snprintf(line_buffer, SW, "Temp: %d*C", status.temp);
+      print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
+
+      if(show_character_sheet) {
+	int x = 0;
+	if(px < SW / 2 + 1) {
+	  x = SW - CSW;
+	}
+
+	char c_buffer[CSW + 1];
+	c_buffer[CSW] = 0;
+	memset(c_buffer, ' ', CSW);
+	for(int y = 0;y < CSH; y++) {
+	  print_string(&screen, c_buffer, FG_WHITE, x, y, ALIGN_LEFT);
+	}
+
+	char stat_buffer[(CSW + 1) * CSH];
+	memset(stat_buffer, 0, (CSW + 1) * CSH);
+
+	STAT_PRINT(1, " Health: %d / %d", status.hp, status.max_hp);
+	STAT_PRINT(2, " Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
+	STAT_PRINT(3, " Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
+	
+	for(int y = 0;y < CSH;y++) {
+	  if(x == 0) {
+	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + 1, y, ALIGN_LEFT);
+	  } else {
+	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + CSW - 2, y, ALIGN_RIGHT);
 	  }
 	}
       }
 
-      if(status.wet && status.bleeding && randomi(1000) > 990) {
-	status.infected += 1;
-      }
-
-      if(status.temp < 0) {
-	if(randomi(1000) > 1000 + status.temp * (status.wet > 0 ? 2 : 1)) {
-	  status.hypothermia += 1;
-	}
-      } else {
-	if(randomi(2) > 0) { 
-	  status.hypothermia -= status.hypothermia > 0 ? 1 : 0;
-	}
-      }
-
-      if(status.hypothermia > 0) {
-	if(randomi(1000) > 750) {
-	  status.hp--;
-	}
-      }
-      if(randomi(1000) > 900) {
-	status.bleeding -= status.bleeding > 0 ? 1 : 0;
-      }
-
-      if(status.bleeding) {
-	if(randomi(1000) > 990) {
-	  status.hp--;
-	}
-      }
-      if(status.infected) {
-	if(randomi(1000) > 950) {
-	  status.hp--;
-	}
-      }
-      if(status.temp < 0) {
-	if(randomi(1000) > 1000 - status.temp * 4) {
-	  status.hp--;
-	}
-      }
-      status.hp = status.hp < 0 ? 0 : status.hp;
-
-      int penalty = 1;
-      if(mode == MODE_WORLD) {
-	penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
-      }
-
-      can_move = 6 * penalty;
-
-      int print_len;
-      if(mode == MODE_BIOME) {
-	print_len = snprintf(line_buffer, SW, "Current biome: %s", get_biome_name(get_tile_at(&map, px, py)));
-      } else {
-	print_len = snprintf(line_buffer, SW, "Current biome: %s", get_biome_name(get_tile_at(&map, map.width / 2, map.height / 2)));
-      }
-      memset(line_buffer + print_len, ' ', SW - print_len);
-      print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
-
-      print_len = snprintf(line_buffer, SW, "Status: [%s%s%s%s%s]", status.wet > 0 ? "Wet": "Dry", status.temp < 0 ? " | Cold" : status.temp > 30 ? " | Hot" : "", status.hypothermia > 0 ? " | Hypothermia" : "", status.bleeding > 10 ? " | Profusely Bleeding" : status.bleeding > 0 ? " | Bleeding" : "", status.infected > 0 ? " | Infected" : "");
-      memset(line_buffer + print_len, ' ', SW - print_len);
-      print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 1, ALIGN_LEFT);
-
-      snprintf(line_buffer, SW, "Temp: %d*C HP: %d/%d", status.temp, status.hp, status.max_hp);
-      print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
-      snprintf(line_buffer, SW, "HP: %d/%d", status.hp, status.max_hp);
-      print_string(&screen, line_buffer, FG_RED, SW, SH - 1, ALIGN_RIGHT);
       print_console(&screen);
+
+      should_render = should_tick = 0;
     }
 
     Sleep(10);
