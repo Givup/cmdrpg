@@ -14,8 +14,17 @@ float randomf() {
   return (float)rand() / (float)RAND_MAX;
 };
 
-int randomi(int limit) {
+float randombif() {
+  return (randomf() - 0.5f) * 2.0f;
+};
+
+unsigned int randomi(unsigned int limit) {
   return rand() % limit;
+};
+
+unsigned int randomi_range(unsigned int min, unsigned int max) {
+  if(max <= min) return 0;
+  return randomi(max - min) + min;
 };
 
 int IsFormatSupported(WAVEFORMATEX format, UINT device) {
@@ -102,35 +111,101 @@ int main(int argc, char** argv) {
 
   Map map;
   create_map(&map, SW, SH);
+  generate_map(&map, 0, 0, SW, SH);
 
-  print_map(&map, &screen);
-  print_console(&screen);
+  //print_map(&map, &screen);
+  //print_console(&screen);
 
-  int changed;
+  int can_move_x = 0;
+  int can_move_y = 0;
+
+  int map_x, map_y;
+  int px = -100, py = 0;
+
+  int changed = 1;
+
+  const int MODE_WORLD = 0;
+  const int MODE_BIOME = 1;
+
+  int mode = MODE_WORLD;
+  int space_last = 0;
+
   while(1) {
     if(window_handle != GetForegroundWindow()) continue;
 
-    changed = 0;
+    can_move_x -= can_move_x > 0 ? 1 : 0;
+    can_move_y -= can_move_y > 0 ? 1 : 0;
 
-    if(GetKeyState(VK_SPACE) & 0x8000) {
+    if(GetKeyState(VK_ESCAPE) & 0x8000) {
       break;
     }
 
-    if(GetKeyState(0x57) & 0x8000) {
-      changed |= print_string(&screen, "W", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
+      if(mode == MODE_WORLD) {
+	if(generate_biome_at(&map, SW / 2, SH / 2)) {
+	  map_x = px;
+	  map_y = py;
+	  px = SW / 2;
+	  py = SH / 2;
+	  mode = MODE_BIOME;
+	}
+      } else {
+	px = map_x;
+	py = map_y;
+	mode = MODE_WORLD;
+	clear_entities(&map);
+      }
+      changed = 1;
     }
-    else if(GetKeyState(0x41) & 0x8000) {
-      changed |= print_string(&screen, "A", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    space_last = GetKeyState(VK_SPACE) & 0x8000;
+
+    if(GetKeyState(0x57) & 0x8000 && can_move_y <= 0) {
+      //changed |= print_string(&screen, "W", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+      py--;
+      changed = 1;
     }
-    else if(GetKeyState(0x53) & 0x8000) {
-      changed |= print_string(&screen, "S", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    if(GetKeyState(0x41) & 0x8000 && can_move_x <= 0) {
+      //changed |= print_string(&screen, "A", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+      px--;
+      changed = 1;
     }
-    else if(GetKeyState(0x44) & 0x8000) {
-      changed |= print_string(&screen, "D", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+    if(GetKeyState(0x53) & 0x8000 && can_move_y <= 0) {
+      //changed |= print_string(&screen, "S", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+      py++;
+      changed = 1;
+    }
+    if(GetKeyState(0x44) & 0x8000 && can_move_x <= 0) {
+      //changed |= print_string(&screen, "D", FG_WHITE | BG_BLACK, 0, 0, ALIGN_LEFT);
+      px++;
+      changed = 1;
+    }
+
+    if(mode == MODE_BIOME) {
+      px = (px + SW) % SW;
+      py = (py + SH) % SH;
     }
 
     if(changed) {
+      changed = 0;
+      can_move_x = 9;
+      can_move_y = 12;
+
+      if(mode == MODE_WORLD) {
+	generate_map(&map, px - SW / 2, py - SH / 2, SW, SH);
+	print_map(&map, &screen);
+	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, SW / 2, SH / 2), SW / 2, SH / 2, ALIGN_LEFT);
+      }
+      else {
+	print_map(&map, &screen);
+	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, px, py), px, py, ALIGN_LEFT);
+      }
+
+
       print_console(&screen);
+
+      char buf[32];
+      sprintf(buf, "[%d,%d]       ", px, py);
+      print_string(&screen, buf, FG_BLACK | BG_WHITE, 0, 0, ALIGN_LEFT);
     }
 
     Sleep(10);
