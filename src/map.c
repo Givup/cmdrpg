@@ -263,6 +263,18 @@ int can_move_to(Map* map, int x, int y) {
   }
 };
 
+void try_move_to(Map* map, int x, int y, Status* status) {
+  int tile = map->tiles[x + y * map->width];
+  int entity = map->entities[x + y * map->width];
+
+  if(entity == ENTITY_CACTUS) {
+    status->bleeding |= 1;
+  }
+  if(tile == TILE_WATER) {
+    status->wet |= 1;
+  }
+};
+
 void clear_entities(Map* map) {
   memset(map->entities, 0, sizeof(int) * map->width * map->height);
 };

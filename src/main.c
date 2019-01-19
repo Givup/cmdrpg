@@ -6,6 +6,7 @@
 #include "perlin.h"
 #include "screen.h"
 #include "map.h"
+#include "status.h"
 
 #define SW 120
 #define SH 40
@@ -50,11 +51,6 @@ char* generate_sawtooth(int t0, int num_steps, int mod) {
 
   return data;
 };
-
-typedef struct {
-  int wet;
-  int bleeding;
-} Status;
 
 int main(int argc, char** argv) {
 
@@ -127,8 +123,10 @@ int main(int argc, char** argv) {
   int map_x, map_y;
   int px = -100, py = 0;
 
-  Status status;
-  status.wet = 0;
+  Status status = { 0 };
+  status.max_hp = 25;
+  status.hp = status.max_hp;
+  status.temp = 20;
 
   int changed = 1;
 
@@ -185,22 +183,34 @@ int main(int argc, char** argv) {
       changed = 1;
     }
 
+    Status env_status = { 0 };
     if(mode == MODE_WORLD) {
       px += d_x;
       py += d_y;
+      env_status.temp = get_tile_temp(get_tile_at(&map, map.width / 2, map.height / 2));
     } 
     else if(mode == MODE_BIOME) {
+      try_move_to(&map, (px + d_x + map.width) % map.width, py, &env_status);
+      try_move_to(&map, px, (py + d_y + map.height) % map.height, &env_status);
+
       if(can_move_to(&map, (px + d_x + map.width) % map.width, py)) px += d_x;
       if(can_move_to(&map, px, (py + d_y + map.height) % map.height)) py += d_y;
 
       px = (px + map.width) % map.width;
       py = (py + map.height) % map.height;
+
+      env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
     }
 
     d_x = d_y = 0;
 
     if(changed) {
       changed = 0;
+
+      int temp_d = env_status.temp - status.temp;
+      status.wet += env_status.wet;
+      status.bleeding += env_status.bleeding;
+      status.temp += temp_d > 0 ? 1 : temp_d < 0 ? -1 : 0;
 
       if(mode == MODE_WORLD) {
 	generate_map(&map, px - map.width / 2, py - map.height / 2, map.width, map.height);
@@ -220,6 +230,26 @@ int main(int argc, char** argv) {
 	status.wet += get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 2 : status.wet > 0 ? -1 : 0;
       }
 
+      if(status.wet && status.bleeding) {
+	status.infected += 1;
+      }
+
+      if(status.bleeding) {
+	if(randomi(1000) > 990) {
+	  status.hp--;
+	}
+      }
+      if(status.infected) {
+	if(randomi(1000) > 950) {
+	  status.hp--;
+	}
+      }
+      if(status.temp < 0) {
+	if(randomi(1000) > 900) {
+	  status.hp--;
+	}
+      }
+
       int penalty = 1;
       if(mode == MODE_WORLD) {
 	penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
@@ -236,10 +266,14 @@ int main(int argc, char** argv) {
       memset(line_buffer + print_len, ' ', SW - print_len);
       print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
 
-      print_len = snprintf(line_buffer, SW, "Status: [%s]", status.wet > 0 ? "Wet": "Dry");
+      print_len = snprintf(line_buffer, SW, "Status: [%s%s%s]", status.wet > 0 ? "Wet": "Dry", status.bleeding > 0 ? "| Bleeding" : "", status.infected > 0 ? "| Infected" : "");
       memset(line_buffer + print_len, ' ', SW - print_len);
       print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 1, ALIGN_LEFT);
 
+      snprintf(line_buffer, SW, "B.Temp: %d*C HP: %d/%d", status.temp, status.hp, status.max_hp);
+      print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
+      snprintf(line_buffer, SW, "HP: %d/%d", status.hp, status.max_hp);
+      print_string(&screen, line_buffer, FG_RED, SW, SH - 1, ALIGN_RIGHT);
       print_console(&screen);
     }
 

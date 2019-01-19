@@ -2,6 +2,7 @@
 #define _TILE_MAP_H_
 
 #include "screen.h"
+#include "status.h"
 
 #define TILE_UNDEF    0
 #define TILE_GRASS    1
@@ -53,6 +54,7 @@ extern void generate_map(Map*, int, int, int, int);
 extern int  generate_biome_at(Map*, int, int);
 
 extern int can_move_to(Map*, int, int);
+extern void try_move_to(Map*, int, int, Status*);
 
 extern void clear_entities(Map*);
 
