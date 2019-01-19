@@ -140,6 +140,15 @@ int main(int argc, char** argv) {
 
   while(1) {
     if(window_handle != GetForegroundWindow()) continue;
+    if(status.hp <= 0) {
+      print_string(&screen, "YOU DIED", FG_WHITE | BG_BLACK, SW / 2, SH / 2, ALIGN_CENTER);
+      print_string(&screen, "Press escape to exit.", FG_WHITE | BG_BLACK, SW / 2, SH / 2 + 1, ALIGN_CENTER);
+      print_console(&screen);
+      if(GetKeyState(VK_ESCAPE) & 0x8000) {
+	break;
+      }
+      continue;
+    };
 
     can_move -= can_move > 0 ? 1 : 0;
 
@@ -167,39 +176,46 @@ int main(int argc, char** argv) {
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
     if(GetKeyState(0x57) & 0x8000 && can_move <= 0) {
-      d_y = -1;
-      changed = 1;
+      d_y = -1; // Move up
     }
     if(GetKeyState(0x41) & 0x8000 && can_move <= 0) {
-      d_x = -1;
-      changed = 1;
+      d_x = -1; // Move left
     }
     if(GetKeyState(0x53) & 0x8000 && can_move <= 0) {
-      d_y = 1;
-      changed = 1;
+      d_y = 1; // Move down
     }
     if(GetKeyState(0x44) & 0x8000 && can_move <= 0) {
-      d_x = 1;
-      changed = 1;
+      d_x = 1; // Move right
     }
 
     Status env_status = { 0 };
     if(mode == MODE_WORLD) {
       px += d_x;
       py += d_y;
+
+      if(d_x != 0 || d_y != 0) changed = 1;
+
       env_status.temp = get_tile_temp(get_tile_at(&map, map.width / 2, map.height / 2));
     } 
     else if(mode == MODE_BIOME) {
-      try_move_to(&map, (px + d_x + map.width) % map.width, py, &env_status);
-      try_move_to(&map, px, (py + d_y + map.height) % map.height, &env_status);
+      if(d_x != 0 || d_y != 0) {
+	try_move_to(&map, (px + d_x + map.width) % map.width, py, &env_status);
+	try_move_to(&map, px, (py + d_y + map.height) % map.height, &env_status);
 
-      if(can_move_to(&map, (px + d_x + map.width) % map.width, py)) px += d_x;
-      if(can_move_to(&map, px, (py + d_y + map.height) % map.height)) py += d_y;
+	if(can_move_to(&map, (px + d_x + map.width) % map.width, py)) {
+	  px += d_x;
+	  changed = 1;
+	}
+	if(can_move_to(&map, px, (py + d_y + map.height) % map.height)) {
+	  py += d_y;
+	  changed = 1;
+	}
 
-      px = (px + map.width) % map.width;
-      py = (py + map.height) % map.height;
+	px = (px + map.width) % map.width;
+	py = (py + map.height) % map.height;
 
-      env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
+	env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
+      }
     }
 
     d_x = d_y = 0;
@@ -227,11 +243,37 @@ int main(int argc, char** argv) {
       }
 
       if(mode == MODE_WORLD) {
-	status.wet += get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 2 : status.wet > 0 ? -1 : 0;
+	int wetness = get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 2 : 0;
+	if(wetness > 0) {
+	  status.wet += wetness;
+	} else {
+	  if(status.temp > 0) {
+	    if(status.wet > 0) status.wet -= 1;
+	  }
+	}
       }
 
-      if(status.wet && status.bleeding) {
+      if(status.wet && status.bleeding && randomi(1000) > 990) {
 	status.infected += 1;
+      }
+
+      if(status.temp < 0) {
+	if(randomi(1000) > 1000 + status.temp * (status.wet > 0 ? 2 : 1)) {
+	  status.hypothermia += 1;
+	}
+      } else {
+	if(randomi(2) > 0) { 
+	  status.hypothermia -= status.hypothermia > 0 ? 1 : 0;
+	}
+      }
+
+      if(status.hypothermia > 0) {
+	if(randomi(1000) > 750) {
+	  status.hp--;
+	}
+      }
+      if(randomi(1000) > 900) {
+	status.bleeding -= status.bleeding > 0 ? 1 : 0;
       }
 
       if(status.bleeding) {
@@ -245,10 +287,11 @@ int main(int argc, char** argv) {
 	}
       }
       if(status.temp < 0) {
-	if(randomi(1000) > 900) {
+	if(randomi(1000) > 1000 - status.temp * 4) {
 	  status.hp--;
 	}
       }
+      status.hp = status.hp < 0 ? 0 : status.hp;
 
       int penalty = 1;
       if(mode == MODE_WORLD) {
@@ -266,11 +309,11 @@ int main(int argc, char** argv) {
       memset(line_buffer + print_len, ' ', SW - print_len);
       print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
 
-      print_len = snprintf(line_buffer, SW, "Status: [%s%s%s]", status.wet > 0 ? "Wet": "Dry", status.bleeding > 0 ? "| Bleeding" : "", status.infected > 0 ? "| Infected" : "");
+      print_len = snprintf(line_buffer, SW, "Status: [%s%s%s%s%s]", status.wet > 0 ? "Wet": "Dry", status.temp < 0 ? " | Cold" : status.temp > 30 ? " | Hot" : "", status.hypothermia > 0 ? " | Hypothermia" : "", status.bleeding > 10 ? " | Profusely Bleeding" : status.bleeding > 0 ? " | Bleeding" : "", status.infected > 0 ? " | Infected" : "");
       memset(line_buffer + print_len, ' ', SW - print_len);
       print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 1, ALIGN_LEFT);
 
-      snprintf(line_buffer, SW, "B.Temp: %d*C HP: %d/%d", status.temp, status.hp, status.max_hp);
+      snprintf(line_buffer, SW, "Temp: %d*C HP: %d/%d", status.temp, status.hp, status.max_hp);
       print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
       snprintf(line_buffer, SW, "HP: %d/%d", status.hp, status.max_hp);
       print_string(&screen, line_buffer, FG_RED, SW, SH - 1, ALIGN_RIGHT);

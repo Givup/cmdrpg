@@ -141,7 +141,7 @@ const char* get_biome_name(int biome) {
   switch(biome) {
   case TILE_GRASS: return "Grasslands";
   case TILE_GROUND: return "Flatlands";
-  case TILE_WATER: return "Water . . .";
+  case TILE_WATER: return "Water";
   case TILE_SAND: return "Beach";
   case TILE_FOREST: return "Thick forest";
   case TILE_ROCK: return "Mountain";
@@ -192,7 +192,10 @@ void generate_map(Map* map, int x, int y, int w, int h) {
     else if(f_abs(n) < 0.5f) {
       map->tiles[i] = TILE_GROUND;
     }
-    else if(n >= 0.5f && n < 0.99f) {
+    else if(n >= 0.5f && n < 0.7f) {
+      map->tiles[i] = TILE_GROUND;
+    }
+    else if(n >= 0.7f && n < 0.99f) {
       map->tiles[i] = TILE_ROCK;
     }
     else if(n >= 0.99f) {

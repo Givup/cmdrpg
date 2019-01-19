@@ -33,7 +33,7 @@ int get_tile_temp(int tile) {
   case TILE_GROUND: return 10;
   case TILE_GRASS: return 15;
   case TILE_FOREST: return 15;
-  case TILE_SAND: return 30;
+  case TILE_SAND: return 40;
   default: return 10;
   }
 };

@@ -5,10 +5,11 @@
 
 typedef struct {
   int hp, max_hp;
+  int temp;
   int wet;
   int bleeding;
   int infected;
-  int temp;
+  int hypothermia;
 } Status;
 
 extern const char* get_temp_description(int);
