@@ -2,12 +2,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
+#include <math.h>
 
 #include "core.h"
+#include "clock.h"
 #include "perlin.h"
+#include "audio.h"
 #include "screen.h"
 #include "map.h"
 #include "status.h"
+
+int alarm_file_size;
+char* alarm_file_data;
+
+int hurt_file_size;
+char* hurt_file_data;
+
 
 // Macros
 #define STAT_PRINT(y, format, ...) snprintf(stat_buffer + y * (CSW + 1), CSW, format, __VA_ARGS__);
@@ -23,85 +33,70 @@
 #define CSW 30
 #define CSH (SH - 2)
 
-int IsFormatSupported(WAVEFORMATEX format, UINT device) {
-  return waveOutOpen(NULL, device, &format, (DWORD_PTR)NULL, 0, WAVE_FORMAT_QUERY ) == MMSYSERR_NOERROR ? 1 : 0;
-};
-
-void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-  if(uMsg == WOM_OPEN) {
-    printf("Audio device opened.\n");
-  } else if(uMsg == WOM_CLOSE) {
-    printf("Audio device closed.\n");
-  } else if(uMsg == WOM_DONE) {
-    printf("Done with the audio device.\n");
+short* generate_sawtooth(int channels, float frequency_mod, int num_steps, int mod, int* byte_count) {
+  short* data = (short*)malloc(sizeof(short) * num_steps);
+  for(int i = 0;i < num_steps; i++) {
+    data[i] = (int)((float)(i / channels) * frequency_mod) % mod;
   }
-};
-
-char* generate_sawtooth(int t0, int num_steps, int mod) {
-  char* data = (char*)malloc(sizeof(char) * num_steps);
-
-  for(int i = 0;i < num_steps;i++) {
-    data[i] = (t0 + i) % mod;
-  }
-
+  *byte_count = sizeof(short) * num_steps;
   return data;
+};
+
+int load_file(const char* filename, char** file_storage) {
+  FILE* f = fopen(filename, "rb");
+  if(f == NULL) {
+    printf("Couldn't find the audio file.\n");
+    return 0;
+  }
+
+  long long file_size = 0;
+  fseek(f, 0, SEEK_END);
+  file_size = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  *file_storage = (char*)malloc(file_size);
+  fread(*file_storage, 1, file_size, f);
+  return file_size;
 };
 
 int main(int argc, char** argv) {
 
-  WORD channels = 1;
-  DWORD samples = 44100;
-  WORD bits_per_sample = 8;
-  
-  WAVEFORMATEX wave_format = {
-			      WAVE_FORMAT_PCM, // wFormatTag
-			      channels, // nChannels
-			      samples, // nSamplesPerSecond
-			      samples * ((channels * bits_per_sample) / 8), // nAvgBytesPerSec = nSamplesPerSecond * nBlockAlign
-			      (channels * bits_per_sample) / 8, // nBlockAlign = nChannels * wBitsPerSample / 8
-			      bits_per_sample, // wBitsPerSample,
-			      0 // cbSize, not used with PCM data
-  };
-
-  char* sawtooth = generate_sawtooth(0, 100, 15);
-
-  // Possibly upload data to audio device
-
-  free(sawtooth);
-  
-  int selected_device = -1;
-
-  UINT num_devs = waveOutGetNumDevs();
-  for(int i = num_devs - 1; i >= 0; i--) {
-    WAVEOUTCAPS caps;
-    waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
-    int support = IsFormatSupported(wave_format, i);
-    printf("\tCan use: [%s] - Name: %s\n", support ? "x" : " ", caps.szPname);
-
-    if(selected_device == -1 || (i < selected_device && support)) {
-      selected_device = i;
-    }
-  }
-
-  printf("Selected device %d.\n", selected_device);
-
-  HWAVEOUT wave_device;
-  if(waveOutOpen(&wave_device, selected_device, &wave_format, (DWORD_PTR)waveOutProc, (DWORD_PTR)NULL, CALLBACK_FUNCTION) != MMSYSERR_NOERROR) {
-    printf("Failed to open audio output device.\n");
+  alarm_file_size = load_file("Alarm01.raw", &alarm_file_data);
+  if(alarm_file_size == 0) {
+    printf("Failed to load audio file: 'Alarm01.raw'\n");
     return 1;
   }
 
-  load_permutation("perlin_seed");
+  hurt_file_size = load_file("Hurt.raw", &hurt_file_data);
+  if(hurt_file_size == 0) {
+    printf("Failed to load audio file: 'Hurt.raw'\n");
+    return 1;
+  }
+
+  load_permutation("perlin_seed"); // Perlin noise seed
 
   HWND window_handle = GetForegroundWindow();
-  
-  system("title DNG_CMD"); // Change title
 
   Screen screen;
   if(create_screen(&screen, SW, SH)) {
     printf("Failed to create screen.\n");
     return 1;
   }
+
+  AudioODevice output_device;
+  if(create_output_device(&output_device, 3, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
+    printf("Failed to create audio device.\n");
+    return 1;
+  }
+
+  /*
+  UINT num_devs = waveOutGetNumDevs();
+  for(int i = num_devs - 1; i >= 0; i--) {
+    WAVEOUTCAPS caps;
+    waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
+    int support = is_format_supported(output_device.format, i);
+    printf("\tCan use: [%s] - Name: %s\n", support ? "x" : " ", caps.szPname);
+  }
+  */
 
   char line_buffer[SW + 1];
   memset(line_buffer, ' ', SW);
@@ -116,7 +111,7 @@ int main(int argc, char** argv) {
   int can_move = 0;
 
   int map_x, map_y;
-  int px = -100, py = 0;
+  int px = 0, py = 0;
 
   Status status = { 0 };
   init_status(&status, 25, 2500, 2500);
@@ -132,7 +127,57 @@ int main(int argc, char** argv) {
 
   int d_x = 0, d_y = 0;
 
+  int alarm_next_byte = 0;
+  int hurt_next_byte = 0;
+
+  char* mixed = (char*)malloc(output_device.buffer_size);
+
+  Clock runtime_clock;
+  start_clock(&runtime_clock);
+
+  int play_hurt = 0;
+
   while(1) {
+
+    float time = get_clock_delta_s(&runtime_clock);
+
+    if(time > 1.0f) {
+      reset_clock(&runtime_clock);
+      play_hurt = 1;
+    }
+
+    if(output_device.buffers_available > 0) {
+      memset(mixed, 0, output_device.buffer_size);
+      int max_bytes = 0;
+      {
+	int byte_count = min(alarm_file_size - alarm_next_byte, output_device.buffer_size);
+
+	//queue_data_to_output_device(&output_device, alarm_file_data + alarm_next_byte, byte_count);
+	for(int i = 0;i < byte_count;i++) {
+	  mixed[i] += alarm_file_data[i + alarm_next_byte];
+	}
+
+	alarm_next_byte += byte_count;
+	if(alarm_next_byte >= alarm_file_size) alarm_next_byte = 0;
+	max_bytes = max(max_bytes, byte_count);
+      }
+      if(play_hurt)
+      {
+	int byte_count = min(hurt_file_size - hurt_next_byte, output_device.buffer_size);
+
+	//queue_data_to_output_device(&output_device, hurt_file_data + hurt_next_byte, byte_count);
+	for(int i = 0;i < byte_count;i++) {
+	  mixed[i] += hurt_file_data[i + hurt_next_byte];
+	}
+
+	hurt_next_byte += byte_count;
+	if(hurt_next_byte >= hurt_file_size) { hurt_next_byte = 0; play_hurt = 0; }
+	max_bytes = max(max_bytes, byte_count);
+      }
+
+      queue_data_to_output_device(&output_device, mixed, max_bytes);
+    }
+
     if(window_handle != GetForegroundWindow()) continue;
     if(status.hp <= 0) {
       print_string(&screen, "YOU DIED", FG_WHITE | BG_BLACK, SW / 2, SH / 2, ALIGN_CENTER);
@@ -340,13 +385,12 @@ int main(int argc, char** argv) {
       should_render = should_tick = 0;
     }
 
-    Sleep(10);
+    //Sleep(10);
   }
 
   free_map(&map);
   free_screen(&screen);
-  
-  waveOutClose(wave_device);
+  free_output_device(&output_device);
 
   return 0;
 };

@@ -109,6 +109,11 @@ void tick_status(Status* status) {
   }
 
   status->hunger--;
+  if(status->temp > 30) {
+    if(randomi(1000) > 900) {
+      status->hunger++;
+    }
+  }
 
   if(status->temp > 30) {
     status->thirst--;
