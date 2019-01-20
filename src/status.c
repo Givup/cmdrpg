@@ -66,7 +66,9 @@ void apply_status(const Status a, Status* b) {
   b->temp += temp_d > 0 ? 1 : temp_d < 0 ? -1 : 0;
 };
 
-void tick_status(Status* status) {
+int tick_status(Status* status) {
+  int damage_taken = 0;
+
   // Infection if bleeding and wet
   if(status->wet && status->bleeding && randomi(1000) > 990) {
     status->infected += 1;
@@ -88,6 +90,7 @@ void tick_status(Status* status) {
   if(status->hypothermia > 0) {
     if(randomi(1000) > 750) {
       status->hp--;
+      damage_taken++;
     }
   }
 
@@ -98,6 +101,7 @@ void tick_status(Status* status) {
     }
     if(randomi(1000) > 990) {
       status->hp--;
+      damage_taken++;
     }
   }
 
@@ -105,6 +109,7 @@ void tick_status(Status* status) {
   if(status->infected) {
     if(randomi(1000) > 950) {
       status->hp--;
+      damage_taken++;
     }
   }
 
@@ -124,5 +129,7 @@ void tick_status(Status* status) {
   if(status->hp < 0) status->hp = 0;
   if(status->hunger < 0) status->hunger = 0;
   if(status->thirst < 0) status->thirst = 0;
+
+  return damage_taken;
 };
 

@@ -12,16 +12,11 @@
 #include "map.h"
 #include "status.h"
 
-int alarm_file_size;
-char* alarm_file_data;
-
-int hurt_file_size;
-char* hurt_file_data;
-
-
 // Macros
+// Character screen status print
 #define STAT_PRINT(y, format, ...) snprintf(stat_buffer + y * (CSW + 1), CSW, format, __VA_ARGS__);
 
+// Status line (bottom one) print
 #define STATUS_LINE_PRINT(color, y, format, ...) print_len = snprintf(line_buffer, SW - printed, format, __VA_ARGS__); \
   printed += print_string(&screen, line_buffer, color, printed, y, ALIGN_LEFT); \
 
@@ -33,109 +28,92 @@ char* hurt_file_data;
 #define CSW 30
 #define CSH (SH - 2)
 
-short* generate_sawtooth(int channels, float frequency_mod, int num_steps, int mod, int* byte_count) {
-  short* data = (short*)malloc(sizeof(short) * num_steps);
-  for(int i = 0;i < num_steps; i++) {
-    data[i] = (int)((float)(i / channels) * frequency_mod) % mod;
-  }
-  *byte_count = sizeof(short) * num_steps;
-  return data;
-};
-
-int load_file(const char* filename, char** file_storage) {
-  FILE* f = fopen(filename, "rb");
-  if(f == NULL) {
-    printf("Couldn't find the audio file.\n");
-    return 0;
-  }
-
-  long long file_size = 0;
-  fseek(f, 0, SEEK_END);
-  file_size = ftell(f);
-  fseek(f, 0, SEEK_SET);
-  *file_storage = (char*)malloc(file_size);
-  fread(*file_storage, 1, file_size, f);
-  return file_size;
-};
-
 int main(int argc, char** argv) {
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
+  // For detecting if the console is active
   HWND window_handle = GetForegroundWindow();
 
+  // Create screen with dimensions [SW, SH]
   Screen screen;
   if(create_screen(&screen, SW, SH)) {
     printf("Failed to create screen.\n");
     return 1;
   }
+  show_cursor(&screen, FALSE); // Disable cursor blinking
 
+  // TODO: Find out why buffer_size matters for the audio so much
+  // Create audio output device
   AudioODevice output_device;
   if(create_output_device(&output_device, 3, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
     printf("Failed to create audio device.\n");
     return 1;
   }
 
-  AudioData alarm;
-  if(load_audio_data_from_file(&alarm, "Alarm01.raw")) {
-    printf("Failed to load audiofile: 'Alarm01.raw'\n");
-    return 1;
-  }
-
+  // Load audio file hurt.raw
   AudioData hurt;
   if(load_audio_data_from_file(&hurt, "Hurt.raw")) {
     printf("Failed to load audiofile: 'Hurt.raw'\n");
     return 1;
   }
 
-  alarm_file_size = load_file("Alarm01.raw", &alarm_file_data);
-  if(alarm_file_size == 0) {
-    printf("Failed to load audio file: 'Alarm01.raw'\n");
+  // Load background music file morning_in_pripyat.raw
+  AudioData music;
+  if(load_audio_data_from_file(&music, "morning_in_pripyat.raw")) {
+    printf("Failed to load background music.\n");
     return 1;
   }
 
-  hurt_file_size = load_file("Hurt.raw", &hurt_file_data);
-  if(hurt_file_size == 0) {
-    printf("Failed to load audio file: 'Hurt.raw'\n");
+  // Create mixer for output device
+  AudioMixer mixer;
+  if(create_mixer_with_format(&mixer, output_device.n_buffers, output_device.buffer_size, output_device.format)) {
+    printf("Failed to create audio mixer.\n");
     return 1;
   }
 
+  // Print all the output devices for the fun of it
   enumerate_output_devices(output_device.win_format);
 
+  // Line buffer, so we don't have to re-allocate memory every frame
   char line_buffer[SW + 1];
   memset(line_buffer, ' ', SW);
   line_buffer[SW] = 0;
 
-  show_cursor(&screen, FALSE);
-
+  // Create map
   Map map;
   create_map(&map, SW, SH - 2);
-  generate_map(&map, 0, 0, map.width, map.height);
+  generate_map(&map, 0, 0, map.width, map.height); // Generates world map using perlin-noise
 
+  // Movement cooldown
   int can_move = 0;
 
-  int map_x, map_y;
-  int px = 0, py = 0;
+  // Coordinates
+  int map_x, map_y; // World offset saved when entering biome mode
+  int px = 0, py = 0; // Player coordinates
 
+  // Player status
   Status status = { 0 };
   init_status(&status, 25, 2500, 2500);
 
+  // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
 
+  // Two different game modes
   const int MODE_WORLD = 0;
   const int MODE_BIOME = 1;
 
+  // Flags
   int show_character_sheet = 0;
   int mode = MODE_WORLD;
+
+  // Input flags so they only trigger once when pressed
   int space_last = 0, c_last = 0;
 
+  // How much player moved this frame
   int d_x = 0, d_y = 0;
 
-  int alarm_next_byte = 0;
-  int hurt_next_byte = 0;
-
-  char* mixed = (char*)malloc(output_device.buffer_size);
-
+  // Delta time
   Clock runtime_clock;
   start_clock(&runtime_clock);
 
@@ -143,46 +121,37 @@ int main(int argc, char** argv) {
 
   while(1) {
 
+    // Current runtime count in seconds
     float time = get_clock_delta_s(&runtime_clock);
+    time *= 1.0f;
 
-    if(time > 1.0f) {
-      reset_clock(&runtime_clock);
-      play_hurt = 1;
-    }
-
+    // If there is a free audio buffer available
     if(output_device.buffers_available > 0) {
-      memset(mixed, 0, output_device.buffer_size);
-      int max_bytes = 0;
-      {
-	int byte_count = min(alarm_file_size - alarm_next_byte, output_device.buffer_size);
-
-	//queue_data_to_output_device(&output_device, alarm_file_data + alarm_next_byte, byte_count);
-	for(int i = 0;i < byte_count;i++) {
-	  mixed[i] += alarm_file_data[i + alarm_next_byte];
+      // Prepare mixer to receive data (clear last packet data)
+      prepare_mixer(&mixer);
+      // Should the hurt audio play (This should be later moved into its' own struct)
+      if(play_hurt) {
+	// Mix the hurt audio clip to the current mix
+	mix_audio(&mixer, &hurt, 1.0f);
+	// If clip has ended, stop playing it and set the current position to start
+	if(hurt.current_position >= hurt.data_size) {
+	  play_hurt = 0;
+	  reset_audio_position(&hurt);
 	}
-
-	alarm_next_byte += byte_count;
-	if(alarm_next_byte >= alarm_file_size) alarm_next_byte = 0;
-	max_bytes = max(max_bytes, byte_count);
-      }
-      if(play_hurt)
-      {
-	int byte_count = min(hurt_file_size - hurt_next_byte, output_device.buffer_size);
-
-	//queue_data_to_output_device(&output_device, hurt_file_data + hurt_next_byte, byte_count);
-	for(int i = 0;i < byte_count;i++) {
-	  mixed[i] += hurt_file_data[i + hurt_next_byte];
-	}
-
-	hurt_next_byte += byte_count;
-	if(hurt_next_byte >= hurt_file_size) { hurt_next_byte = 0; play_hurt = 0; }
-	max_bytes = max(max_bytes, byte_count);
       }
 
-      queue_data_to_output_device(&output_device, mixed, max_bytes);
+      mix_audio(&mixer, &music, 0.2f);
+      if(has_ended(&music)) {
+	reset_audio_position(&music);
+      }
+
+      // Actually push the audio data to the output device
+      queue_data_to_output_device(&output_device, get_current_audio_data(&mixer), mixer.mixed_byte_count);
     }
 
+    // If the window is not focused, don't bother updating
     if(window_handle != GetForegroundWindow()) continue;
+    // If the player has died
     if(status.hp <= 0) {
       print_string(&screen, "YOU DIED", FG_WHITE | BG_BLACK, SW / 2, SH / 2, ALIGN_CENTER);
       print_string(&screen, "Press escape to exit.", FG_WHITE | BG_BLACK, SW / 2, SH / 2 + 1, ALIGN_CENTER);
@@ -284,7 +253,9 @@ int main(int argc, char** argv) {
 	  }
 	}
 
-	tick_status(&status);
+	if(tick_status(&status)) { // If player took damage
+	  play_hurt = 1;
+	}
 
 	int penalty = 1;
 	if(mode == MODE_WORLD) {
@@ -394,6 +365,10 @@ int main(int argc, char** argv) {
 
   free_map(&map);
   free_screen(&screen);
+
+  free_audio_data(&music);
+  free_audio_data(&hurt);
+
   free_output_device(&output_device);
 
   return 0;

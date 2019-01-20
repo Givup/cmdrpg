@@ -21,7 +21,7 @@ extern int get_tile_temp(int);
 extern WORD get_temp_attributes(int);
 
 extern void apply_status(const Status a, Status* b);
-extern void tick_status(Status* status);
+extern int tick_status(Status* status);
 
 #endif
 

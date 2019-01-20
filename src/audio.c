@@ -19,6 +19,102 @@ void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_P
 };
 
 /*
+  AUDIO FORMAT
+ */
+
+/*
+  AUDIO DATA
+ */
+
+int load_audio_data_from_file(AudioData* audio, const char* filename) {
+  FILE* f = fopen(filename, "rb");
+  if(f == NULL) {
+    return 1;
+  }
+
+  fseek(f, 0, SEEK_END);
+  long long size = ftell(f);
+  fseek(f, 0, SEEK_SET);
+
+  audio->current_position = 0;
+  audio->data = (char*)malloc(size);
+  audio->data_size = size;
+
+  fread(audio->data, 1, size, f);
+  fclose(f);
+
+  return 0;
+};
+
+int free_audio_data(AudioData* audio) {
+  free(audio->data);
+  return 0;
+};
+
+int has_ended(AudioData* audio) {
+  return audio->current_position >= audio->data_size ? 1 : 0;
+}
+
+void reset_audio_position(AudioData* audio) {
+  audio->current_position = 0;
+};
+
+/*
+  AUDIO MIXER
+ */
+
+int create_mixer_with_format(AudioMixer* mixer, int buffers, int data_size, AudioFormat format) {
+  mixer->n_buffers = buffers;
+  mixer->mixed_data = (char*)malloc(data_size * buffers);
+  mixer->data_size = data_size;
+  mixer->desired_format = format;
+  return 0;
+};
+
+int free_mixer(AudioMixer* mixer) {
+  free(mixer->mixed_data);
+  return 0;
+};
+
+int prepare_mixer(AudioMixer* mixer) {
+  mixer->current_buffer++;
+  if(mixer->current_buffer >= mixer->n_buffers) {
+    mixer->current_buffer = 0;
+  }
+  int offset = mixer->current_buffer * mixer->data_size;
+
+  memset(((char*)mixer->mixed_data) + offset, 0, mixer->data_size);
+  mixer->mixed_byte_count = 0;
+  return 0;
+};
+
+int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
+  int bytes = min(data->data_size - data->current_position, mixer->data_size);
+
+  if(mixer->desired_format.bits_per_sample == 8) {
+    int offset = mixer->current_buffer * mixer->data_size;
+    for(int i = 0; i < bytes; i++) {
+      ((char*)mixer->mixed_data)[i + offset] += (char)((float)(((char*)data->data)[data->current_position + i]) * volume);
+    }
+  }
+  else if(mixer->desired_format.bits_per_sample == 16) {
+    int offset = mixer->current_buffer * mixer->data_size / 2;
+    for(int i = 0;i < bytes / 2;i++) {
+      ((short*)mixer->mixed_data)[i + offset] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * volume);
+    }
+  }
+
+  data->current_position += bytes;
+  mixer->mixed_byte_count = max(mixer->mixed_byte_count, bytes);
+  return 0;
+};
+
+void* get_current_audio_data(AudioMixer* mixer) {
+  int off = mixer->current_buffer * mixer->data_size;
+  return (void*)(((char*)mixer->mixed_data) + off);
+};
+
+/*
   AUDIO OUTPUT BUFFER
  */
 
@@ -68,7 +164,6 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   if(waveOutOpen(&wave_device, -1, &wave_format, (DWORD_PTR)waveOutProc, (DWORD_PTR)device, CALLBACK_FUNCTION) != MMSYSERR_NOERROR) {
     return 1;
   }
-  waveOutSetVolume(wave_device, 0xFFFF);
 
   AudioFormat format = { 0 };
   format.channels = channels;
