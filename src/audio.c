@@ -2,6 +2,10 @@
 
 #include <stdio.h>
 
+/*
+  CALLBACK FUNCTION
+*/
+
 void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
   if(uMsg == WOM_OPEN) {
   } else if(uMsg == WOM_CLOSE) {
@@ -13,6 +17,10 @@ void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_P
     LeaveCriticalSection(&device->critical_section);
   }
 };
+
+/*
+  AUDIO OUTPUT BUFFER
+ */
 
 int init_audio_output_buffer(void* device_ptr, AudioOBuffer* buffer, int buffer_size) {
   WAVEHDR hdr = { 0 };
@@ -41,6 +49,10 @@ void write_buffer(AudioOBuffer* buffer, void* data, int byte_count) {
   hdr->dwFlags = 0;
 };
 
+/*
+  AUDIO OUTPUT DEVICE
+ */
+
 int create_output_device(AudioODevice* device, int buffers, int buffer_size, int channels, int samples, int bits_per_sample) {
   WAVEFORMATEX wave_format = {
 			      WAVE_FORMAT_PCM, // wFormatTag
@@ -58,9 +70,14 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   }
   waveOutSetVolume(wave_device, 0xFFFF);
 
-  device->format = wave_format;
+  AudioFormat format = { 0 };
+  format.channels = channels;
+  format.samples = samples;
+  format.bits_per_sample = bits_per_sample;
+
+  device->win_format = wave_format;
+  device->format = format;
   device->device = wave_device;
-  device->channels = channels;
   device->buffer_size = buffer_size;
 
   device->n_buffers = buffers;
@@ -111,4 +128,14 @@ int queue_data_to_output_device(AudioODevice* device, void* data, int byte_count
 
 int is_format_supported(WAVEFORMATEX format, UINT device) {
   return waveOutOpen(NULL, device, &format, (DWORD_PTR)NULL, 0, WAVE_FORMAT_QUERY ) == MMSYSERR_NOERROR ? 1 : 0;
+};
+
+void enumerate_output_devices(WAVEFORMATEX format) {
+  UINT num_devs = waveOutGetNumDevs();
+  for(int i = num_devs - 1; i >= 0; i--) {
+    WAVEOUTCAPS caps;
+    waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
+    int support = is_format_supported(format, i);
+    printf("\tCan use: [%s] - Name: %s\n", support ? "x" : " ", caps.szPname);
+  }
 };

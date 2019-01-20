@@ -60,18 +60,6 @@ int load_file(const char* filename, char** file_storage) {
 
 int main(int argc, char** argv) {
 
-  alarm_file_size = load_file("Alarm01.raw", &alarm_file_data);
-  if(alarm_file_size == 0) {
-    printf("Failed to load audio file: 'Alarm01.raw'\n");
-    return 1;
-  }
-
-  hurt_file_size = load_file("Hurt.raw", &hurt_file_data);
-  if(hurt_file_size == 0) {
-    printf("Failed to load audio file: 'Hurt.raw'\n");
-    return 1;
-  }
-
   load_permutation("perlin_seed"); // Perlin noise seed
 
   HWND window_handle = GetForegroundWindow();
@@ -88,15 +76,31 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  /*
-  UINT num_devs = waveOutGetNumDevs();
-  for(int i = num_devs - 1; i >= 0; i--) {
-    WAVEOUTCAPS caps;
-    waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
-    int support = is_format_supported(output_device.format, i);
-    printf("\tCan use: [%s] - Name: %s\n", support ? "x" : " ", caps.szPname);
+  AudioData alarm;
+  if(load_audio_data_from_file(&alarm, "Alarm01.raw")) {
+    printf("Failed to load audiofile: 'Alarm01.raw'\n");
+    return 1;
   }
-  */
+
+  AudioData hurt;
+  if(load_audio_data_from_file(&hurt, "Hurt.raw")) {
+    printf("Failed to load audiofile: 'Hurt.raw'\n");
+    return 1;
+  }
+
+  alarm_file_size = load_file("Alarm01.raw", &alarm_file_data);
+  if(alarm_file_size == 0) {
+    printf("Failed to load audio file: 'Alarm01.raw'\n");
+    return 1;
+  }
+
+  hurt_file_size = load_file("Hurt.raw", &hurt_file_data);
+  if(hurt_file_size == 0) {
+    printf("Failed to load audio file: 'Hurt.raw'\n");
+    return 1;
+  }
+
+  enumerate_output_devices(output_device.win_format);
 
   char line_buffer[SW + 1];
   memset(line_buffer, ' ', SW);
@@ -385,7 +389,7 @@ int main(int argc, char** argv) {
       should_render = should_tick = 0;
     }
 
-    //Sleep(10);
+    Sleep(10);
   }
 
   free_map(&map);
