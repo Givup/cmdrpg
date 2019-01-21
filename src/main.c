@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
   // TODO: Find out why buffer_size matters for the audio so much
   // Create audio output device
   AudioODevice output_device;
-  if(create_output_device(&output_device, 3, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
+  if(create_output_device(&output_device, 1, 1024 * 8, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
     printf("Failed to create audio device.\n");
     return 1;
   }

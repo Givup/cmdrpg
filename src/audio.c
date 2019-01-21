@@ -117,7 +117,7 @@ void* get_current_audio_data(AudioMixer* mixer) {
 /*
   AUDIO OUTPUT BUFFER
  */
-
+// TODO: Check why there is a void* to device, when it's not even used (should it be?)
 int init_audio_output_buffer(void* device_ptr, AudioOBuffer* buffer, int buffer_size) {
   WAVEHDR hdr = { 0 };
   hdr.lpData = (void*)0;
