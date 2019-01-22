@@ -46,7 +46,7 @@ typedef struct {
   char* data;
 } AudioOBuffer;
 
-extern int init_audio_output_buffer(void*, AudioOBuffer*, int);
+extern int init_audio_output_buffer(AudioOBuffer*, int);
 extern int free_audio_output_buffer(void*, AudioOBuffer*);
 
 typedef struct {

@@ -117,12 +117,12 @@ void* get_current_audio_data(AudioMixer* mixer) {
 /*
   AUDIO OUTPUT BUFFER
  */
-// TODO: Check why there is a void* to device, when it's not even used (should it be?)
-int init_audio_output_buffer(void* device_ptr, AudioOBuffer* buffer, int buffer_size) {
+int init_audio_output_buffer(AudioOBuffer* buffer, int buffer_size) {
   WAVEHDR hdr = { 0 };
   hdr.lpData = (void*)0;
   hdr.dwBufferLength = buffer_size;
   hdr.dwFlags = 0;
+
   buffer->header = hdr;
   buffer->max_size = buffer_size;
   buffer->prepared = 0;
@@ -143,6 +143,11 @@ void write_buffer(AudioOBuffer* buffer, void* data, int byte_count) {
   hdr->lpData = (void*)buffer->data;
   hdr->dwBufferLength = byte_count;
   hdr->dwFlags = 0;
+  hdr->dwBytesRecorded = 0;
+  hdr->dwUser = 0;
+  hdr->dwLoops = 0;
+  hdr->lpNext = 0;
+  hdr->reserved = 0;
 };
 
 /*
@@ -178,7 +183,7 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   device->n_buffers = buffers;
   device->buffers = (AudioOBuffer*)malloc(sizeof(AudioOBuffer) * buffers);
   for(int b = 0;b < buffers;b++) {
-    init_audio_output_buffer((void*)device, &device->buffers[b], buffer_size);
+    init_audio_output_buffer(&device->buffers[b], buffer_size);
   }
   device->buffers_available = buffers;
   InitializeCriticalSection(&device->critical_section);
