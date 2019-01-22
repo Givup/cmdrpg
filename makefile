@@ -9,7 +9,7 @@ build:
 	$(CC) $(DEPS) -Wall -o program.exe $(INCLUDES) $(SOURCE) $(MAIN) $(LIBS)
 
 debug_build:
-	$(CC) $(DEPS) -Wall -ggdb -o program.exe $(INCLUDES) $(SOURCE) $(MAIN) $(LIBS)
+	$(CC) $(DEPS) -Wall -ggdb -o program_debug.exe $(INCLUDES) $(SOURCE) $(MAIN) $(LIBS)
 
 run: build
 	./program.exe

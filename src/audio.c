@@ -77,30 +77,25 @@ int free_mixer(AudioMixer* mixer) {
 };
 
 int prepare_mixer(AudioMixer* mixer) {
-  mixer->current_buffer++;
-  if(mixer->current_buffer >= mixer->n_buffers) {
-    mixer->current_buffer = 0;
-  }
+  mixer->current_buffer = (mixer->current_buffer + 1) % mixer->n_buffers; // Loop around
   int offset = mixer->current_buffer * mixer->data_size;
-
   memset(((char*)mixer->mixed_data) + offset, 0, mixer->data_size);
   mixer->mixed_byte_count = 0;
   return 0;
 };
 
 int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
-  int bytes = min(data->data_size - data->current_position, mixer->data_size);
+  int offset = mixer->current_buffer * mixer->data_size;
+  int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
 
-  if(mixer->desired_format.bits_per_sample == 8) {
-    int offset = mixer->current_buffer * mixer->data_size;
-    for(int i = 0; i < bytes; i++) {
-      ((char*)mixer->mixed_data)[i + offset] += (char)((float)(((char*)data->data)[data->current_position + i]) * volume);
+  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
+    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
+      ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * volume);
     }
   }
-  else if(mixer->desired_format.bits_per_sample == 16) {
-    int offset = mixer->current_buffer * mixer->data_size / 2;
-    for(int i = 0;i < bytes / 2;i++) {
-      ((short*)mixer->mixed_data)[i + offset] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * volume);
+  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
+    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
+      ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * volume);
     }
   }
 
@@ -125,7 +120,6 @@ int init_audio_output_buffer(AudioOBuffer* buffer, int buffer_size) {
 
   buffer->header = hdr;
   buffer->max_size = buffer_size;
-  buffer->prepared = 0;
   buffer->data = (char*)malloc(buffer_size);
   return 0;
 };
@@ -185,7 +179,7 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   for(int b = 0;b < buffers;b++) {
     init_audio_output_buffer(&device->buffers[b], buffer_size);
   }
-  device->buffers_available = buffers;
+  device->buffers_available = buffers - 1;
   InitializeCriticalSection(&device->critical_section);
   return 0;
 };
@@ -200,20 +194,19 @@ int free_output_device(AudioODevice* device) {
   return 0;
 };
 
-int queue_data_to_output_device(AudioODevice* device, void* data, int byte_count) {
+int queue_data_to_output_device(AudioODevice* device, AudioMixer* mixer) {
   if(device->buffers_available <= 0) {
     printf("No buffers available.\n");
     return 1;
   }
 
-  AudioOBuffer* buffer = &device->buffers[device->buffers_available - 1];
-  write_buffer(buffer, data, byte_count);
+  AudioOBuffer* buffer = &device->buffers[mixer->current_buffer];
+  write_buffer(buffer, get_current_audio_data(mixer), mixer->mixed_byte_count);
 
-  if(buffer->prepared) {
+  if(buffer->header.dwFlags & WHDR_PREPARED) {
     waveOutUnprepareHeader(device->device, &buffer->header, sizeof(WAVEHDR));
   }
   waveOutPrepareHeader(device->device, &buffer->header, sizeof(WAVEHDR));
-  buffer->prepared = 1;
 
   MMRESULT write_success = waveOutWrite(device->device, &buffer->header, sizeof(WAVEHDR));
   if(write_success != MMSYSERR_NOERROR) {

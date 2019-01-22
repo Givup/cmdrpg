@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
   // TODO: Find out why buffer_size matters for the audio so much
   // Create audio output device
   AudioODevice output_device;
-  if(create_output_device(&output_device, 1, 1024 * 8, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
+  if(create_output_device(&output_device, 4, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
     printf("Failed to create audio device.\n");
     return 1;
   }
@@ -117,13 +117,12 @@ int main(int argc, char** argv) {
   Clock runtime_clock;
   start_clock(&runtime_clock);
 
+  // Flag if 'hurt.raw' should be played
   int play_hurt = 0;
 
   while(1) {
-
     // Current runtime count in seconds
     float time = get_clock_delta_s(&runtime_clock);
-    time *= 1.0f;
 
     // If there is a free audio buffer available
     if(output_device.buffers_available > 0) {
@@ -140,13 +139,13 @@ int main(int argc, char** argv) {
 	}
       }
 
-      mix_audio(&mixer, &music, 0.2f);
+      mix_audio(&mixer, &music, 1.0f);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
 
       // Actually push the audio data to the output device
-      queue_data_to_output_device(&output_device, get_current_audio_data(&mixer), mixer.mixed_byte_count);
+      queue_data_to_output_device(&output_device, &mixer);
     }
 
     // If the window is not focused, don't bother updating
@@ -360,7 +359,7 @@ int main(int argc, char** argv) {
       should_render = should_tick = 0;
     }
 
-    Sleep(10);
+    // Sleep(1);
   }
 
   free_map(&map);

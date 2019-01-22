@@ -42,7 +42,6 @@ extern void* get_current_audio_data(AudioMixer*);
 typedef struct {
   WAVEHDR header;
   int max_size;
-  int prepared;
   char* data;
 } AudioOBuffer;
 
@@ -63,7 +62,7 @@ typedef struct {
 extern int create_output_device(AudioODevice*, int, int, int, int, int);
 extern int free_output_device(AudioODevice*);
 
-extern int queue_data_to_output_device(AudioODevice*, void*, int);
+extern int queue_data_to_output_device(AudioODevice*, AudioMixer*);
 
 extern int is_format_supported(WAVEFORMATEX format, UINT device);
 extern void enumerate_output_devices(WAVEFORMATEX format);

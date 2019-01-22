@@ -35,10 +35,12 @@ int create_screen(Screen* screen, int w, int h) {
     return 1;
   }
 
+  /*
   if(SetConsoleActiveScreenBuffer(console) == 0) {
     printf("Failed to set active screen buffer.\n");
     return 1;
   }
+  */
 
   screen->width = w;
   screen->height = h;
