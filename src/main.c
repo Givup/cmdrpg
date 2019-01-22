@@ -28,6 +28,9 @@
 #define CSW 30
 #define CSH (SH - 2)
 
+// sinewave
+// Generates a sinewave tone with frequency and amplitude
+// Returns a pointer to the data, and len is set to bytes generated
 void* sinewave(float amplitude, float frequency, int samples, int bits_per_sample, int channels, int* len) {
   if(!(bits_per_sample == 8 || bits_per_sample == 16)) {
     *len = 0;
@@ -73,7 +76,7 @@ int main(int argc, char** argv) {
   // TODO: Find out why buffer_size matters for the audio so much
   // Create audio output device
   AudioODevice output_device;
-  if(create_output_device(&output_device, 4, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
+  if(create_output_device(&output_device, 8, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
     printf("Failed to create audio device.\n");
     return 1;
   }
@@ -87,20 +90,10 @@ int main(int argc, char** argv) {
 
   // Load background music from wav file
   AudioData music;
-  if(load_audio_data_from_ogg(&music, "Duet_for_Violin_and_Piano.ogg")) {
+  if(load_audio_data_from_ogg(&music, "DannyDontYouKnow.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
-
-  int sine_wave_len;
-  void* sine_wave_data = sinewave(0.3f, 500.0f, 44100, 16, 2, &sine_wave_len);
-  if(sine_wave_len == 0) {
-    printf("Failed to generate sine wave.\n");
-    return 1;
-  }
-
-  AudioData sine_wave;
-  load_audio_data_from_data(&sine_wave, sine_wave_data, sine_wave_len);
 
   // Create mixer for output device
   AudioMixer mixer;
@@ -123,7 +116,7 @@ int main(int argc, char** argv) {
   generate_map(&map, 0, 0, map.width, map.height); // Generates world map using perlin-noise
 
   // Movement cooldown
-  int can_move = 0;
+  float can_move = 0.0f;
 
   // Coordinates
   int map_x, map_y; // World offset saved when entering biome mode
@@ -153,13 +146,19 @@ int main(int argc, char** argv) {
   // Delta time
   Clock runtime_clock;
   start_clock(&runtime_clock);
+  reset_clock(&runtime_clock);
 
   // Flag if 'hurt.raw' should be played
   int play_hurt = 0;
 
+  float total_time = 0.0f;
+  float dt = 0.0f;
+
   while(1) {
     // Current runtime count in seconds
-    float time = get_clock_delta_s(&runtime_clock);
+    dt = get_clock_delta_s(&runtime_clock);
+    total_time += dt;
+    reset_clock(&runtime_clock);
 
     // If there is a free audio buffer available
     if(output_device.buffers_available > 0) {
@@ -168,7 +167,7 @@ int main(int argc, char** argv) {
       // Should the hurt audio play (This should be later moved into its' own struct)
       if(play_hurt) {
 	// Mix the hurt audio clip to the current mix
-	//mix_audio(&mixer, &hurt, 1.0f);
+ 	mix_audio(&mixer, &hurt, 1.0f);
 	// If clip has ended, stop playing it and set the current position to start
 	if(hurt.current_position >= hurt.data_size) {
 	  play_hurt = 0;
@@ -176,12 +175,11 @@ int main(int argc, char** argv) {
 	}
       }
 
-      //mix_audio(&mixer, &music, 0.3f);
+      // Play background music 'on loop'
+      mix_audio(&mixer, &music, 0.3f);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
-
-      mix_audio(&mixer, &sine_wave, 1.0f);
 
       // Actually push the audio data to the output device
       queue_data_to_output_device(&output_device, &mixer);
@@ -200,7 +198,9 @@ int main(int argc, char** argv) {
       continue;
     };
 
-    can_move -= can_move > 0 ? 1 : 0;
+    if(can_move > 0.0f) {
+      can_move -= dt;
+    }
 
     if(GetKeyState(VK_ESCAPE) & 0x8000) {
       break;
@@ -230,16 +230,16 @@ int main(int argc, char** argv) {
     }
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
-    if(GetKeyState(0x57) & 0x8000 && can_move <= 0) {
+    if(GetKeyState(0x57) & 0x8000 && can_move <= 0.0f) {
       d_y = -1; // Move up
     }
-    if(GetKeyState(0x41) & 0x8000 && can_move <= 0) {
+    if(GetKeyState(0x41) & 0x8000 && can_move <= 0.0f) {
       d_x = -1; // Move left
     }
-    if(GetKeyState(0x53) & 0x8000 && can_move <= 0) {
+    if(GetKeyState(0x53) & 0x8000 && can_move <= 0.0f) {
       d_y = 1; // Move down
     }
-    if(GetKeyState(0x44) & 0x8000 && can_move <= 0) {
+    if(GetKeyState(0x44) & 0x8000 && can_move <= 0.0f) {
       d_x = 1; // Move right
     }
 
@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
 	if(mode == MODE_WORLD) {
 	  penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
 	}
-	can_move = 6 * penalty;
+	can_move = (float)penalty * 0.333f;
       }
 
       // Rendering world map

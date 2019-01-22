@@ -50,8 +50,11 @@ int load_file_contents(const char* filename, char** buffer, int* filesize) {
 
 int load_audio_data_from_ogg(AudioData* audio, const char* filename) {
   short* decoded;
-  int channels, sample_rate, len;
-  len = stb_vorbis_decode_filename(filename, &channels, &sample_rate, &decoded);
+  int channels, sample_rate;
+  int len = stb_vorbis_decode_filename(filename, &channels, &sample_rate, &decoded);
+
+  len *= channels * sizeof(short);
+  
   audio->data = (void*)decoded;
   audio->data_size = len;
   audio->current_position = 0;
@@ -91,7 +94,10 @@ int load_audio_data_from_data(AudioData* audio, void* data, int data_size) {
 
 
 int free_audio_data(AudioData* audio) {
-  free(audio->data);
+  if(audio->data_size) {
+    free(audio->data);
+    audio->data_size = 0;
+  }
   return 0;
 };
 
@@ -148,6 +154,32 @@ int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
   return 0;
 };
 
+// We assume that the audio data is stereo (2 channels)
+int mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right) {
+  if(left < 0) left = -left;
+  if(right < 0) right = -right;
+
+  int offset = mixer->current_buffer * mixer->data_size;
+  int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
+
+  int l_or_r = 0;
+
+  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
+    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
+      ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * (l_or_r++ % 2 == 0 ? left : right));
+    }
+  }
+  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
+    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
+      ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * (l_or_r++ % 2 == 0 ? left : right));
+    }
+  }
+
+  data->current_position += bytes;
+  mixer->mixed_byte_count = max(mixer->mixed_byte_count, bytes);
+  return 0;
+};
+
 void* get_current_audio_data(AudioMixer* mixer) {
   int off = mixer->current_buffer * mixer->data_size;
   return (void*)(((char*)mixer->mixed_data) + off);
@@ -192,8 +224,6 @@ void write_buffer(AudioOBuffer* buffer, void* data, int byte_count) {
   AUDIO OUTPUT DEVICE
  */
 int create_output_device(AudioODevice* device, int buffers, int buffer_size, int channels, int samples, int bits_per_sample) {
-
-
   WAVEFORMATEX wave_format = { 0 };
   wave_format.wFormatTag = WAVE_FORMAT_PCM; // wFormatTag
   wave_format.nChannels = channels; // nChannels
@@ -203,12 +233,14 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   wave_format.wBitsPerSample = bits_per_sample; // wBitsPerSample,
   wave_format.cbSize = 0; // cbSize, not used with PCM data
 
+
   HWAVEOUT wave_device;
   if(waveOutOpen(&wave_device, -1, &wave_format, (DWORD_PTR)waveOutProc, (DWORD_PTR)device, CALLBACK_FUNCTION) != MMSYSERR_NOERROR) {
     return 1;
   }
+  printf("Channel count: %d\n", wave_format.nChannels);
 
-  waveOutSetVolume(wave_device, 0xFFFF); // 0xLLRR
+  waveOutSetVolume(wave_device, 0xFFFFFFFF); // 0x RRRR LLLL
 
   AudioFormat format = { 0 };
   format.channels = channels;

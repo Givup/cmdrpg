@@ -39,6 +39,7 @@ extern int create_mixer_with_format(AudioMixer*, int, int, AudioFormat);
 extern int free_mixer(AudioMixer*);
 extern int prepare_mixer(AudioMixer*);
 extern int mix_audio(AudioMixer*, AudioData*, float volume);
+extern int mix_audio_tilt(AudioMixer*, AudioData*, float, float);
 extern void* get_current_audio_data(AudioMixer*);
 
 typedef struct {
