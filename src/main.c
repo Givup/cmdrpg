@@ -90,14 +90,14 @@ int main(int argc, char** argv) {
 
   // Load background music from wav file
   AudioData music;
-  if(load_audio_data_from_ogg(&music, "DannyDontYouKnow.ogg")) {
+  if(load_audio_data_from_ogg(&music, "Duet_for_Violin_and_Piano.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
 
   // Create mixer for output device
   AudioMixer mixer;
-  if(create_mixer_with_format(&mixer, output_device.n_buffers, output_device.buffer_size, output_device.format)) {
+  if(create_mixer_for_device(&mixer, &output_device)) {
     printf("Failed to create audio mixer.\n");
     return 1;
   }
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
       }
 
       // Play background music 'on loop'
-      mix_audio(&mixer, &music, 0.3f);
+      mix_audio(&mixer, &music, 1.0f);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
@@ -398,7 +398,7 @@ int main(int argc, char** argv) {
       should_render = should_tick = 0;
     }
 
-    // Sleep(1);
+    Sleep(1);
   }
 
   free_map(&map);

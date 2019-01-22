@@ -108,83 +108,6 @@ int has_ended(AudioData* audio) {
 void reset_audio_position(AudioData* audio) {
   audio->current_position = 0;
 };
-
-/*
-  AUDIO MIXER
- */
-
-int create_mixer_with_format(AudioMixer* mixer, int buffers, int data_size, AudioFormat format) {
-  mixer->n_buffers = buffers;
-  mixer->mixed_data = (char*)malloc(data_size * buffers);
-  mixer->data_size = data_size;
-  mixer->desired_format = format;
-  return 0;
-};
-
-int free_mixer(AudioMixer* mixer) {
-  free(mixer->mixed_data);
-  return 0;
-};
-
-int prepare_mixer(AudioMixer* mixer) {
-  mixer->current_buffer = (mixer->current_buffer + 1) % mixer->n_buffers; // Loop around
-  int offset = mixer->current_buffer * mixer->data_size;
-  memset(((char*)mixer->mixed_data) + offset, 0, mixer->data_size);
-  mixer->mixed_byte_count = 0;
-  return 0;
-};
-
-int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
-  int offset = mixer->current_buffer * mixer->data_size;
-  int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
-
-  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
-    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
-      ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * volume);
-    }
-  }
-  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
-    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
-      ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * volume);
-    }
-  }
-
-  data->current_position += bytes;
-  mixer->mixed_byte_count = max(mixer->mixed_byte_count, bytes);
-  return 0;
-};
-
-// We assume that the audio data is stereo (2 channels)
-int mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right) {
-  if(left < 0) left = -left;
-  if(right < 0) right = -right;
-
-  int offset = mixer->current_buffer * mixer->data_size;
-  int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
-
-  int l_or_r = 0;
-
-  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
-    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
-      ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * (l_or_r++ % 2 == 0 ? left : right));
-    }
-  }
-  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
-    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
-      ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * (l_or_r++ % 2 == 0 ? left : right));
-    }
-  }
-
-  data->current_position += bytes;
-  mixer->mixed_byte_count = max(mixer->mixed_byte_count, bytes);
-  return 0;
-};
-
-void* get_current_audio_data(AudioMixer* mixer) {
-  int off = mixer->current_buffer * mixer->data_size;
-  return (void*)(((char*)mixer->mixed_data) + off);
-};
-
 /*
   AUDIO OUTPUT BUFFER
  */
@@ -310,3 +233,81 @@ void enumerate_output_devices(WAVEFORMATEX format) {
     printf("\tCan use: [%s] - Name: %s\n", support ? "x" : " ", caps.szPname);
   }
 };
+
+
+/*
+  AUDIO MIXER
+ */
+
+int create_mixer_for_device(AudioMixer* mixer, AudioODevice* device) {
+  mixer->n_buffers = device->n_buffers;
+  mixer->mixed_data = (char*)malloc(device->buffer_size * device->n_buffers);
+  mixer->data_size = device->buffer_size;
+  mixer->desired_format = device->format;
+  return 0;
+};
+
+int free_mixer(AudioMixer* mixer) {
+  free(mixer->mixed_data);
+  return 0;
+};
+
+int prepare_mixer(AudioMixer* mixer) {
+  mixer->current_buffer = (mixer->current_buffer + 1) % mixer->n_buffers; // Loop around
+  int offset = mixer->current_buffer * mixer->data_size;
+  memset(((char*)mixer->mixed_data) + offset, 0, mixer->data_size);
+  mixer->mixed_byte_count = 0;
+  return 0;
+};
+
+int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
+  int offset = mixer->current_buffer * mixer->data_size;
+  int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
+
+  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
+    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
+      ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * volume);
+    }
+  }
+  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
+    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
+      ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * volume);
+    }
+  }
+
+  data->current_position += bytes;
+  mixer->mixed_byte_count = max(mixer->mixed_byte_count, bytes);
+  return 0;
+};
+
+// We assume that the audio data is stereo (2 channels)
+int mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right) {
+  if(left < 0) left = -left;
+  if(right < 0) right = -right;
+
+  int offset = mixer->current_buffer * mixer->data_size;
+  int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
+
+  int l_or_r = 0;
+
+  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
+    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
+      ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * (l_or_r++ % 2 == 0 ? left : right));
+    }
+  }
+  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
+    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
+      ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * (l_or_r++ % 2 == 0 ? left : right));
+    }
+  }
+
+  data->current_position += bytes;
+  mixer->mixed_byte_count = max(mixer->mixed_byte_count, bytes);
+  return 0;
+};
+
+void* get_current_audio_data(AudioMixer* mixer) {
+  int off = mixer->current_buffer * mixer->data_size;
+  return (void*)(((char*)mixer->mixed_data) + off);
+};
+

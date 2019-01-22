@@ -18,29 +18,13 @@ typedef struct {
   AudioFormat format;
 } AudioData;
 
-extern int load_audio_data_from_wav(AudioData*, const char*);
+extern int load_audio_data_from_ogg(AudioData*, const char*);
 extern int load_audio_data_from_file(AudioData*, const char*);
 extern int load_audio_data_from_data(AudioData*, void*, int);
 extern int free_audio_data(AudioData*);
 
 extern int has_ended(AudioData*);
 extern void reset_audio_position(AudioData*);
-
-typedef struct {
-  void* mixed_data;
-  int mixed_byte_count;
-  int data_size;
-  int n_buffers;
-  int current_buffer;
-  AudioFormat desired_format; // Should be the same as AudioODevice format
-} AudioMixer;
-
-extern int create_mixer_with_format(AudioMixer*, int, int, AudioFormat);
-extern int free_mixer(AudioMixer*);
-extern int prepare_mixer(AudioMixer*);
-extern int mix_audio(AudioMixer*, AudioData*, float volume);
-extern int mix_audio_tilt(AudioMixer*, AudioData*, float, float);
-extern void* get_current_audio_data(AudioMixer*);
 
 typedef struct {
   WAVEHDR header;
@@ -65,9 +49,27 @@ typedef struct {
 extern int create_output_device(AudioODevice*, int, int, int, int, int);
 extern int free_output_device(AudioODevice*);
 
-extern int queue_data_to_output_device(AudioODevice*, AudioMixer*);
-
 extern int is_format_supported(WAVEFORMATEX format, UINT device);
 extern void enumerate_output_devices(WAVEFORMATEX format);
+
+typedef struct {
+  void* mixed_data;
+  int mixed_byte_count;
+  int data_size;
+  int n_buffers;
+  int current_buffer;
+  AudioFormat desired_format; // Should be the same as AudioODevice format
+} AudioMixer;
+
+extern int create_mixer_for_device(AudioMixer*, AudioODevice*);
+extern int free_mixer(AudioMixer*);
+extern int prepare_mixer(AudioMixer*);
+extern int mix_audio(AudioMixer*, AudioData*, float volume);
+extern int mix_audio_tilt(AudioMixer*, AudioData*, float, float);
+extern void* get_current_audio_data(AudioMixer*);
+
+// Outliers, that require two struct that already have one-way relationship
+// If we really wanted, we could replace AudioMixer* with void*, but not really
+extern int queue_data_to_output_device(AudioODevice*, AudioMixer*);
 
 #endif
