@@ -1,4 +1,5 @@
 #include "audio.h"
+#include "stb_vorbis.c"
 
 #include <stdio.h>
 
@@ -26,9 +27,10 @@ void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_P
   AUDIO DATA
  */
 
-int load_audio_data_from_file(AudioData* audio, const char* filename) {
+int load_file_contents(const char* filename, char** buffer, int* filesize) {
   FILE* f = fopen(filename, "rb");
   if(f == NULL) {
+    printf("Failed to open file '%s'.\n", filename);
     return 1;
   }
 
@@ -36,15 +38,57 @@ int load_audio_data_from_file(AudioData* audio, const char* filename) {
   long long size = ftell(f);
   fseek(f, 0, SEEK_SET);
 
-  audio->current_position = 0;
-  audio->data = (char*)malloc(size);
-  audio->data_size = size;
+  *buffer = (char*)malloc(size);
+  *filesize = size;
 
-  fread(audio->data, 1, size, f);
+  fread(*buffer, 1, size, f);
+
   fclose(f);
 
   return 0;
 };
+
+int load_audio_data_from_ogg(AudioData* audio, const char* filename) {
+  short* decoded;
+  int channels, sample_rate, len;
+  len = stb_vorbis_decode_filename(filename, &channels, &sample_rate, &decoded);
+  audio->data = (void*)decoded;
+  audio->data_size = len;
+  audio->current_position = 0;
+
+  printf("Loaded '%s', channels: %d, sample_rate: %d\n", filename, channels, sample_rate);
+
+  return 0;
+};
+
+int load_audio_data_from_file(AudioData* audio, const char* filename) {
+  
+  char* contents;
+  int file_size;
+
+  if(load_file_contents(filename, &contents, &file_size)) {
+    return 1;
+  }
+
+  audio->data = (char*)malloc(file_size);
+  audio->data_size = file_size;
+  audio->current_position = 0;
+
+  memcpy(audio->data, contents, file_size);
+
+  free(contents);
+
+  return 0;
+};
+
+int load_audio_data_from_data(AudioData* audio, void* data, int data_size) {
+  audio->data = (char*)malloc(data_size);
+  memcpy(audio->data, data, data_size);
+  audio->data_size = data_size;
+  audio->current_position = 0;
+  return 0;
+};
+
 
 int free_audio_data(AudioData* audio) {
   free(audio->data);
@@ -147,22 +191,24 @@ void write_buffer(AudioOBuffer* buffer, void* data, int byte_count) {
 /*
   AUDIO OUTPUT DEVICE
  */
-
 int create_output_device(AudioODevice* device, int buffers, int buffer_size, int channels, int samples, int bits_per_sample) {
-  WAVEFORMATEX wave_format = {
-			      WAVE_FORMAT_PCM, // wFormatTag
-			      channels, // nChannels
-			      samples, // nSamplesPerSecond
-			      samples * ((channels * bits_per_sample) / 8), // nAvgBytesPerSec = nSamplesPerSecond * nBlockAlign
-			      (channels * bits_per_sample) / 8, // nBlockAlign = nChannels * wBitsPerSample / 8
-			      bits_per_sample, // wBitsPerSample,
-			      0 // cbSize, not used with PCM data
-  };
+
+
+  WAVEFORMATEX wave_format = { 0 };
+  wave_format.wFormatTag = WAVE_FORMAT_PCM; // wFormatTag
+  wave_format.nChannels = channels; // nChannels
+  wave_format.nSamplesPerSec = samples; // nSamplesPerSecond
+  wave_format.nAvgBytesPerSec = samples * ((channels * bits_per_sample) / 8); // nAvgBytesPerSec = nSamplesPerSecond * nBlockAlign
+  wave_format.nBlockAlign = (channels * bits_per_sample) / 8; // nBlockAlign = nChannels * wBitsPerSample / 8
+  wave_format.wBitsPerSample = bits_per_sample; // wBitsPerSample,
+  wave_format.cbSize = 0; // cbSize, not used with PCM data
 
   HWAVEOUT wave_device;
   if(waveOutOpen(&wave_device, -1, &wave_format, (DWORD_PTR)waveOutProc, (DWORD_PTR)device, CALLBACK_FUNCTION) != MMSYSERR_NOERROR) {
     return 1;
   }
+
+  waveOutSetVolume(wave_device, 0xFFFF); // 0xLLRR
 
   AudioFormat format = { 0 };
   format.channels = channels;
@@ -179,7 +225,7 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   for(int b = 0;b < buffers;b++) {
     init_audio_output_buffer(&device->buffers[b], buffer_size);
   }
-  device->buffers_available = buffers - 1;
+  device->buffers_available = buffers;
   InitializeCriticalSection(&device->critical_section);
   return 0;
 };

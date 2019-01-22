@@ -28,6 +28,33 @@
 #define CSW 30
 #define CSH (SH - 2)
 
+void* sinewave(float amplitude, float frequency, int samples, int bits_per_sample, int channels, int* len) {
+  if(!(bits_per_sample == 8 || bits_per_sample == 16)) {
+    *len = 0;
+    return NULL;
+  }
+
+  void* data = malloc((bits_per_sample / 8) * channels * samples);
+  *len = (bits_per_sample / 8) * channels * samples;
+
+  for(int i = 0;i < samples;i++) {
+    float s = amplitude * sin((float)i * (frequency / (float)samples) * 6.28f);
+    if(bits_per_sample == 8) {
+      char v = (char)(127.0f * s);
+      for(int c = 0;c < channels;c++) {
+	((char*)data)[i * channels + c] = v;
+      }
+    } else if(bits_per_sample == 16) {
+      short v = (short)(32767.0f * s);
+      for(int c = 0;c < channels;c++) {
+	((short*)data)[i * channels + c] = v;
+      }
+    }
+  }
+
+  return data;
+};
+
 int main(int argc, char** argv) {
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -58,12 +85,22 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // Load background music file morning_in_pripyat.raw
+  // Load background music from wav file
   AudioData music;
-  if(load_audio_data_from_file(&music, "morning_in_pripyat.raw")) {
+  if(load_audio_data_from_ogg(&music, "Duet_for_Violin_and_Piano.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
+
+  int sine_wave_len;
+  void* sine_wave_data = sinewave(0.3f, 500.0f, 44100, 16, 2, &sine_wave_len);
+  if(sine_wave_len == 0) {
+    printf("Failed to generate sine wave.\n");
+    return 1;
+  }
+
+  AudioData sine_wave;
+  load_audio_data_from_data(&sine_wave, sine_wave_data, sine_wave_len);
 
   // Create mixer for output device
   AudioMixer mixer;
@@ -131,7 +168,7 @@ int main(int argc, char** argv) {
       // Should the hurt audio play (This should be later moved into its' own struct)
       if(play_hurt) {
 	// Mix the hurt audio clip to the current mix
-	mix_audio(&mixer, &hurt, 1.0f);
+	//mix_audio(&mixer, &hurt, 1.0f);
 	// If clip has ended, stop playing it and set the current position to start
 	if(hurt.current_position >= hurt.data_size) {
 	  play_hurt = 0;
@@ -139,10 +176,12 @@ int main(int argc, char** argv) {
 	}
       }
 
-      mix_audio(&mixer, &music, 1.0f);
+      //mix_audio(&mixer, &music, 0.3f);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
+
+      mix_audio(&mixer, &sine_wave, 1.0f);
 
       // Actually push the audio data to the output device
       queue_data_to_output_device(&output_device, &mixer);

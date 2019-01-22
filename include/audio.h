@@ -18,7 +18,9 @@ typedef struct {
   AudioFormat format;
 } AudioData;
 
+extern int load_audio_data_from_wav(AudioData*, const char*);
 extern int load_audio_data_from_file(AudioData*, const char*);
+extern int load_audio_data_from_data(AudioData*, void*, int);
 extern int free_audio_data(AudioData*);
 
 extern int has_ended(AudioData*);
