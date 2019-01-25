@@ -1,0 +1,2 @@
+@MapGeneration
+House can be generated top of player when player enters a biome

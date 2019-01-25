@@ -11,6 +11,7 @@
 #include "screen.h"
 #include "map.h"
 #include "status.h"
+#include "item.h"
 
 // Macros
 // Character screen status print
@@ -59,6 +60,18 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
 };
 
 int main(int argc, char** argv) {
+
+  ItemList item_list;
+  if(load_items(&item_list, "items/list.txt")) {
+    printf("Failed to load item list!\n");
+    return 1;
+  }
+
+  Inventory player_inventory;
+  if(create_inventory(&player_inventory, item_list.n_items)) {
+    printf("Failed to create inventory.\n");
+    return 1;
+  };
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -410,6 +423,8 @@ int main(int argc, char** argv) {
   free_audio_data(&hurt);
 
   free_output_device(&output_device);
+
+  free_items(&item_list);
 
   return 0;
 };

@@ -1,0 +1,25 @@
+4
+
+type weapon
+name Wooden_Sword
+desc A_sword_made_of_wood
+price 10
+metadata 0
+
+type weapon
+name Iron_Sword
+desc A_sword_made_of_iron
+price 100
+metadata 0
+
+type food
+name Bread
+desc A_loaf_of_bread
+price 2
+metadata 25
+
+type heal
+name Potion
+desc A_healing_potion
+price 250
+metadata 10
