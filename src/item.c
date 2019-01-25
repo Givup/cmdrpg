@@ -177,6 +177,7 @@ int get_item_by_name(ItemList* list, const char* name) {
 
 int create_inventory(Inventory* inventory, int item_count) {
   inventory->items = (int*)malloc(sizeof(int) * item_count);
+  inventory->n_items = item_count;
   if(inventory->items == NULL) {
     return 1;
   }
@@ -201,6 +202,13 @@ int inventory_take_items(Inventory* inventory, int item_id, int amount) {
     return 1;
   } else { // Remove items
     inventory->items[item_id] -= amount;
+  }
+  return 0;
+};
+
+int inventory_transfer_to(Inventory* from, Inventory* to) {
+  for(int i = 0;i < from->n_items;i++) {
+    to->items[i] += from->items[i];
   }
   return 0;
 };

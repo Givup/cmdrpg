@@ -51,11 +51,13 @@ extern int get_item_by_name(ItemList*, const char*);
 
 typedef struct {
   int* items; // Contains the amount of items by id
+  int n_items; // Item count
 } Inventory;
 
 extern int create_inventory(Inventory*, int);
 extern int inventory_has_item(Inventory*, int);
 extern int inventory_add_items(Inventory*, int, int);
 extern int inventory_take_items(Inventory*, int, int);
+extern int inventory_transfer_to(Inventory*, Inventory*);
 
 #endif

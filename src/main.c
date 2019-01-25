@@ -73,6 +73,11 @@ int main(int argc, char** argv) {
     return 1;
   };
 
+  Inventory loot;
+  create_inventory(&loot, item_list.n_items);
+
+  inventory_transfer_to(&loot, &player_inventory);
+
   load_permutation("perlin_seed"); // Perlin noise seed
 
   // For detecting if the console is active
