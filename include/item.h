@@ -48,6 +48,7 @@ typedef struct {
 } Inventory;
 
 extern int create_inventory(Inventory*, int);
+extern int free_inventory(Inventory*);
 extern int inventory_has_item(Inventory*, int);
 extern int inventory_add_items(Inventory*, int, int);
 extern int inventory_take_items(Inventory*, int, int);

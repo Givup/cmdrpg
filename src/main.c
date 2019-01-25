@@ -73,18 +73,6 @@ int main(int argc, char** argv) {
     return 1;
   };
 
-  Inventory loot;
-  create_inventory(&loot, item_list.n_items);
-  inventory_add_items(&loot, get_item_by_name(&item_list, "Wooden Sword"), 1);
-  inventory_add_items(&loot, get_item_by_name(&item_list, "Bread"), 3);
-  inventory_add_items(&loot, get_item_by_name(&item_list, "Potion"), 2);
-
-  inventory_transfer_to(&loot, &player_inventory); // Test for transferring inventory to another
-
-  for(int i = 0;i < item_list.n_items;i++) {
-    printf("Player: %s x %d\n", item_list.items[i].name, player_inventory.items[i]);
-  }
-
   load_permutation("perlin_seed"); // Perlin noise seed
 
   // For detecting if the console is active
@@ -440,6 +428,7 @@ int main(int argc, char** argv) {
 
   free_output_device(&output_device);
 
+  free_inventory(&player_inventory);
   free_items(&item_list);
 
   return 0;

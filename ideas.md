@@ -12,6 +12,8 @@ Some ideas for the project
 	there are enough of them			
 
 - Items [Inventory, way to collect stuff, trading, etc.]		[ ]
+	- Maybe items could be enumerated by generating a
+		.h file from the items/list.txt ????
 
 - 'Living' entities (friendly and hostile)						[ ]
 	- Cows														[ ]

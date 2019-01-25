@@ -177,6 +177,11 @@ int create_inventory(Inventory* inventory, int item_count) {
   return 0;
 };
 
+int free_inventory(Inventory* inventory) {
+  if(inventory->n_items > 0) free(inventory->items); inventory->n_items = 0;
+  return 0;
+}
+
 int inventory_has_item(Inventory* inventory, int item_id) {
   if(item_id == 0) return -1; // Invalid item_id
   return inventory->items[item_id - 1]; // Return amount of items
