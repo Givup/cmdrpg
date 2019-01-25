@@ -3,7 +3,9 @@ Some ideas for the project
 - Heat stroke (low thirst and high temperature)					[x]
 
 - Some other 'village' structures (wells, ???)					[ ]
-
+	- Houses should have their own tiles, so temperature
+		could be manageable by staying inside
+	
 - Smaller FOV													[ ]
 
 - Stuff in the houses (just random stuff atm)					[ ]

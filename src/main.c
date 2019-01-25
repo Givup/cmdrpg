@@ -55,7 +55,6 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
       }
     }
   }
-
   return data;
 };
 

@@ -72,6 +72,7 @@ void apply_status(const Status a, Status* b) {
 };
 
 int tick_status(Status* status) {
+  int health_at_start = status->hp;
   int damage_taken = 0;
 
   // Infection if bleeding and wet
@@ -95,7 +96,6 @@ int tick_status(Status* status) {
   if(status->hypothermia > 0) {
     if(randomi(1000) > 750) {
       status->hp--;
-      damage_taken++;
     }
   }
   
@@ -115,7 +115,6 @@ int tick_status(Status* status) {
   if(status->heat_stroke > 0) {
     if(randomi(1000) > 750) {
       status->hp--;
-      damage_taken++;
     }
   }
 
@@ -126,7 +125,6 @@ int tick_status(Status* status) {
     }
     if(randomi(1000) > 990) {
       status->hp--;
-      damage_taken++;
     }
   }
 
@@ -134,10 +132,10 @@ int tick_status(Status* status) {
   if(status->infected) {
     if(randomi(1000) > 950) {
       status->hp--;
-      damage_taken++;
     }
   }
 
+  // Hunger
   status->hunger--;
   if(status->temp > 30) {
     if(randomi(1000) > 900) {
@@ -145,15 +143,31 @@ int tick_status(Status* status) {
     }
   }
 
+  if(status->hunger <= 0) { // Take damage if starving
+    if(randomi(1000) > 800) {
+      status->hp--;
+    }
+  }
+
+
+  // Thirst
+  status->thirst--;
   if(status->temp > 30) {
     status->thirst--;
   }
-  status->thirst--;
+
+  if(status->thirst <= 0) { // Take damage if withering away of thirst(?)
+    if(randomi(1000) > 800) {
+      status->hp--;
+    }
+  }
 
   // So anything doesn't go below 0
   if(status->hp < 0) status->hp = 0;
   if(status->hunger < 0) status->hunger = 0;
   if(status->thirst < 0) status->thirst = 0;
+
+  damage_taken = health_at_start - status->hp;
 
   return damage_taken;
 };
