@@ -1,11 +1,6 @@
 #ifndef _ITEM_H_
 #define _ITEM_H_
 
-  // What should an item have
-  // ItemID
-  // Type??
-  // metadata
-
 // Should these be replaced by enum???
 #define ITEM_TYPE_UNDEF      0
 #define ITEM_TYPE_MISC       1
@@ -33,8 +28,6 @@ typedef struct {
   char* desc; // Add this later
   int metadata;
 } Item;
-
-extern const char* get_item_display_name(int);
 
 extern int is_item_equipable(int);
 extern int item_equip_slot(int);

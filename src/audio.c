@@ -53,6 +53,11 @@ int load_audio_data_from_ogg(AudioData* audio, const char* filename) {
   int channels, sample_rate;
   int len = stb_vorbis_decode_filename(filename, &channels, &sample_rate, &decoded);
 
+  if(len <= 0) {
+    printf(".ogg file '%s' sample count was invalid.\n", filename);
+    return 1;
+  }
+  
   len *= channels * sizeof(short);
   
   audio->data = (void*)decoded;

@@ -46,14 +46,6 @@ void strreplace(char* str, char find, char replacor) {
 
 // TODO
 // Should this be filled in runtime, instead of hardcoding it?
-const char* get_item_display_name(int item_id) {
-  switch(item_id) {
-  default: return "NULL-ITEM";
-  }
-};
-
-// TODO
-// Should this be filled in runtime, instead of hardcoding it?
 int is_item_equipable(int item_type) {
   switch(item_type) {
   case ITEM_TYPE_ARMOR_HEAD:
@@ -208,7 +200,8 @@ int inventory_take_items(Inventory* inventory, int item_id, int amount) {
 
 int inventory_transfer_to(Inventory* from, Inventory* to) {
   for(int i = 0;i < from->n_items;i++) {
-    to->items[i] += from->items[i];
+    to->items[i] += from->items[i]; // Add items
+    from->items[i] = 0; // Clean 'from' inventory of items
   }
   return 0;
 };
