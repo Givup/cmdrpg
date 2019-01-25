@@ -114,11 +114,13 @@ int main(int argc, char** argv) {
   }
 
   // Load background music from wav file
+  /*
   AudioData music;
   if(load_audio_data_from_ogg(&music, "Duet_for_Violin_and_Piano.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
+  */
 
   // Create mixer for output device
   AudioMixer mixer;
@@ -201,10 +203,12 @@ int main(int argc, char** argv) {
       }
 
       // Play background music 'on loop'
-      mix_audio(&mixer, &music, 1.0f);
+      /*
+	mix_audio(&mixer, &music, 1.0f);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
+      */
 
       // Actually push the audio data to the output device
       queue_data_to_output_device(&output_device, &mixer);
@@ -431,7 +435,7 @@ int main(int argc, char** argv) {
   free_map(&map);
   free_screen(&screen);
 
-  free_audio_data(&music);
+  // free_audio_data(&music);
   free_audio_data(&hurt);
 
   free_output_device(&output_device);

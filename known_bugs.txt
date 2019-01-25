@@ -1,2 +1,5 @@
 @MapGeneration
 House can be generated top of player when player enters a biome
+
+@General
+Console won't accept input if any other window (or none) is selected when the application starts
