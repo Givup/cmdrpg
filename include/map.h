@@ -18,6 +18,9 @@
 #define ENTITY_CACTUS      1
 #define ENTITY_SCRUB       2
 #define ENTITY_WALKED_SNOW 3
+#define ENTITY_HOUSE       4
+#define ENTITY_DOOR        5
+#define ENTITY_FLOOR       6
 
 typedef struct {
   int pool_size;

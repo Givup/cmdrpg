@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
 	if(mode == MODE_WORLD) {
 	  penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
 	}
-	can_move = (float)penalty * 0.333f;
+	can_move = (float)penalty * (1.0f / 6.0f);
       }
 
       // Rendering world map

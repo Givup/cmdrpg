@@ -44,6 +44,9 @@ const char* get_entity_str(int entity) {
   case ENTITY_CACTUS: return "f";
   case ENTITY_SCRUB: return "*";
   case ENTITY_WALKED_SNOW: return "\260";
+  case ENTITY_HOUSE: return "\316";
+  case ENTITY_DOOR: return "\333";
+  case ENTITY_FLOOR: return "\261";
   default: return " ";
   };
 };
@@ -53,6 +56,9 @@ WORD get_entity_attributes(int entity) {
   case ENTITY_CACTUS: return FG_LIGHT_GREEN;
   case ENTITY_SCRUB: return FG_RED;
   case ENTITY_WALKED_SNOW: return FG_WHITE;
+  case ENTITY_HOUSE:
+  case ENTITY_DOOR: 
+  case ENTITY_FLOOR: return FG_RED;
   default: return FG_MAGENTA | BG_MAGENTA;
   }
 };
@@ -88,6 +94,53 @@ void create_biome_pool(Map* map, int tile, int* pool, int pool_count) {
   memcpy(bpool->pool, pool, sizeof(int) * pool_count *  2);
 };
 
+void generate_house(Map* map, int x, int y, int w, int h) {
+  
+  // If the place we were going to generate house already has one, stop generation
+  for(int x0 = x - w - 2; x0 <= x + w + 2; x0++) {
+    for(int y0 = y - h - 2; y0 <= y + h + 2; y0++) {
+      if(x0 < 0 || x0 >= map->width || y0 < 0 || y0 >= map->height) return;
+      if(map->entities[x0 + y0 * map->width] == ENTITY_HOUSE) return;
+    }
+  }
+
+  for(int x0 = x - w; x0 <= x + w; x0++) {
+    for(int y0 = y - h; y0 <= y + h; y0++) {
+      map->entities[x0 + y0 * map->width] = ENTITY_FLOOR;
+    }
+  }
+
+  // Outlines
+  for(int x0 = x - w; x0 <= x + w; x0++) {
+    map->entities[x0 + (y - h) * map->width] = ENTITY_HOUSE;
+    map->entities[x0 + (y + h) * map->width] = ENTITY_HOUSE;
+  }
+  for(int y0 = y - h; y0 <= y + h; y0++) {
+    map->entities[(x - w) + y0 * map->width] = ENTITY_HOUSE;
+    map->entities[(x + w) + y0 * map->width] = ENTITY_HOUSE;
+  }
+
+  // Make door hole
+  int side = randomi(4);
+  
+  int dx, dy;
+
+  if(side == 0) { // Top
+    dx = randomi_range(x - w + 1, x + w);
+    dy = y - h;
+  } else if(side == 1) { // Right
+    dx = x + w;
+    dy = randomi_range(y - h + 1, y + h);
+  } else if(side == 2) { // Bottom
+    dx = randomi_range(x - w + 1, x + h);
+    dy = y + h;
+  } else { // Left
+    dx = x - w;
+    dy = randomi_range(y - h + 1, y + h);
+  }
+  map->entities[dx + dy * map->width] = ENTITY_DOOR;
+};
+
 void create_map(Map* map, int w, int h) {
   map->width = w;
   map->height = h;
@@ -105,7 +158,10 @@ void create_map(Map* map, int w, int h) {
   }
   map->pool_count = TILE_COUNT;
   
-  int sand_pool[] = { ENTITY_CACTUS, 100, ENTITY_SCRUB, 100 };
+  int forest_pool[] = { ENTITY_HOUSE, 5 };
+  create_biome_pool(map, TILE_GRASS, forest_pool, sizeof(forest_pool) / sizeof(int) / 2);
+
+  int sand_pool[] = { ENTITY_CACTUS, 100, ENTITY_SCRUB, 100, ENTITY_HOUSE, 5 };
   create_biome_pool(map, TILE_SAND, sand_pool, sizeof(sand_pool) / sizeof(int) / 2);
 };
 
@@ -232,14 +288,25 @@ void populate_biome(Map* map, int biome_tile) {
   for(int y = 0;y < map->height;y++) {
     for(int x = 0;x < map->width;x++) {
       if(x == map->width / 2 && y == map->height / 2) continue;
+      if(map->entities[x + y * map->width] != ENTITY_UNDEF) continue;
       int r = randomi(n_entity_pool) * 2;
       int entity = entity_pool[r];
       int chance = entity_pool[r + 1];
       if(randomi(1000) >= (1000 - chance)) {
-	map->entities[x + y * map->width] = entity;
+	if(entity == ENTITY_HOUSE) {
+	  generate_house(map, x, y, randomi_range(3, 5), randomi_range(3, 5));
+	} else {
+	  map->entities[x + y * map->width] = entity;
+	}
       }
     }
   }
+
+  for(int i = 0;i < map->width * map->height; i++) {
+    if(map->entities[i] == ENTITY_HOUSE) {
+    }
+  }
+
 };
 
 int generate_biome_at(Map* map, int _x, int _y) {
@@ -258,9 +325,10 @@ int generate_biome_at(Map* map, int _x, int _y) {
 int can_move_to(Map* map, int x, int y) {
   int entity = map->entities[x + y * map->width];
   switch(entity) {
-
+    
   case ENTITY_SCRUB:
-  case ENTITY_CACTUS: return 0;
+  case ENTITY_CACTUS:
+  case ENTITY_HOUSE: return 0;
 
   default: return 1;
   }
