@@ -12,6 +12,7 @@ typedef struct {
   int bleeding;
   int infected;
   int hypothermia;
+  int heat_stroke; // Should this and hypothermia be combined
 } Status;
 
 extern void init_status(Status*, int, int, int);

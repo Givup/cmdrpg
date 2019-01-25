@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
       // Should the hurt audio play (This should be later moved into its' own struct)
       if(play_hurt) {
 	// Mix the hurt audio clip to the current mix
- 	mix_audio(&mixer, &hurt, 1.0f);
+ 	mix_audio(&mixer, &hurt, 0.2f);
 	// If clip has ended, stop playing it and set the current position to start
 	if(hurt.current_position >= hurt.data_size) {
 	  play_hurt = 0;
@@ -313,7 +313,7 @@ int main(int argc, char** argv) {
 	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, px, py), px, py, ALIGN_LEFT);
 
 	if(get_tile_at(&map, 0, 0) == TILE_MOUNTAIN) {
-	  set_entity(&map, px, py, ENTITY_WALKED_SNOW);
+	  set_entity(&map, px, py, ENTITY_WALKED_SNOW, 0);
 	}
       }
 
@@ -348,10 +348,12 @@ int main(int argc, char** argv) {
 
       STATUS_LINE_PRINT(status.wet > 0 ? FG_TURQUOISE : FG_YELLOW, SH - 1, "%s", status.wet > 0 ? "Wet" : "Dry");
 
-      if(status.hypothermia <= 0) {
+      if(status.hypothermia <= 0 && status.heat_stroke <= 0) {
 	STATUS_LINE_PRINT(status.temp > 30 ? FG_RED : status.temp < 0 ? FG_CYAN : FG_WHITE, SH - 1, "%s", status.temp < 0 ? " Cold" : status.temp > 30 ? " Hot" : "");
-      } else {
-	STATUS_LINE_PRINT(FG_CYAN, SH - 1, "%s", status.hypothermia ? " Hypothermia" : "");
+      } else if(status.hypothermia > 0) {
+	STATUS_LINE_PRINT(FG_CYAN, SH - 1, " Hypothermia", 0);
+      } else if(status.heat_stroke > 0) {
+	STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, " Heat Stroke", 0);
       }
 
       STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, "%s", status.bleeding > 10 ? " Profusely Bleeding" : status.bleeding > 0 ? " Bleeding" : "");

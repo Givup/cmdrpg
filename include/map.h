@@ -28,9 +28,14 @@ typedef struct {
 } BiomeEntityPool;
 
 typedef struct {
+  int tile;
+  int metadata;
+} MapEntity;
+
+typedef struct {
   int width, height;
   int* tiles;
-  int* entities;
+  MapEntity* entities;
 
   int pool_count;
   BiomeEntityPool* biome_pools;
@@ -51,7 +56,7 @@ extern int get_tile_at(Map*, int, int);
 
 extern int get_tile_traverse_penalty(Map*, int);
 
-extern void set_entity(Map*, int, int, int);
+extern void set_entity(Map*, int, int, int, int);
 
 extern void generate_map(Map*, int, int, int, int);
 extern int  generate_biome_at(Map*, int, int);

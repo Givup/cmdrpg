@@ -3,6 +3,13 @@
 
 #include <stdlib.h>
 
+#define METADATA_HOUSE_LEFT_RIGHT   1
+#define METADATA_HOUSE_TOP_BOTTOM   2
+#define METADATA_HOUSE_LEFT_TOP     3
+#define METADATA_HOUSE_LEFT_BOTTOM  4
+#define METADATA_HOUSE_RIGHT_TOP    5
+#define METADATA_HOUSE_RIGHT_BOTTOM 6
+
 extern float randomf();
 extern float randombif();
 extern unsigned int randomi(int);
@@ -39,12 +46,25 @@ WORD get_tile_attributes(int tile) {
   }
 };
 
-const char* get_entity_str(int entity) {
+const char* get_entity_str(int entity, int metadata) {
   switch(entity) {
   case ENTITY_CACTUS: return "f";
   case ENTITY_SCRUB: return "*";
   case ENTITY_WALKED_SNOW: return "\260";
-  case ENTITY_HOUSE: return "\316";
+
+  case ENTITY_HOUSE:
+    {
+      // House metadata contains the connection points
+      switch(metadata) {
+      case METADATA_HOUSE_LEFT_RIGHT: return "\315";
+      case METADATA_HOUSE_TOP_BOTTOM: return "\272";
+      case METADATA_HOUSE_LEFT_TOP: return "\274";
+      case METADATA_HOUSE_LEFT_BOTTOM: return "\273";
+      case METADATA_HOUSE_RIGHT_TOP: return "\310";
+      case METADATA_HOUSE_RIGHT_BOTTOM: return "\311";
+      default: return "\316";
+      }
+    }
   case ENTITY_DOOR: return "\333";
   case ENTITY_FLOOR: return "\261";
   default: return " ";
@@ -64,7 +84,8 @@ WORD get_entity_attributes(int entity) {
 };
 
 void print_map(Map* map, Screen* screen) {
-  int tile, entity;
+  int tile;
+  MapEntity entity;
   for(int y = 0; y < map->height; y++) {
     for(int x = 0; x < map->width; x++) {
       tile = map->tiles[x + y * map->width];
@@ -72,11 +93,11 @@ void print_map(Map* map, Screen* screen) {
       WORD attr = get_tile_attributes(tile);
       
       entity = map->entities[x + y * map->width];
-      const char* entity_str = get_entity_str(entity);
-      WORD entity_attr = get_entity_attributes(entity) | (attr & 0xF0);
+      const char* entity_str = get_entity_str(entity.tile, entity.metadata);
+      WORD entity_attr = get_entity_attributes(entity.tile) | (attr & 0xF0);
 
       print_string(screen, tile_str, attr, x, y, ALIGN_LEFT);
-      if(entity != ENTITY_UNDEF) {
+      if(entity.tile != ENTITY_UNDEF) {
 	print_string(screen, entity_str, entity_attr, x, y, ALIGN_LEFT);
       }
     }
@@ -95,32 +116,53 @@ void create_biome_pool(Map* map, int tile, int* pool, int pool_count) {
 };
 
 void generate_house(Map* map, int x, int y, int w, int h) {
-  
+  int empty_space = 3;
+
   // If the place we were going to generate house already has one, stop generation
-  for(int x0 = x - w - 2; x0 <= x + w + 2; x0++) {
-    for(int y0 = y - h - 2; y0 <= y + h + 2; y0++) {
+  for(int x0 = x - w - empty_space; x0 <= x + w + empty_space; x0++) {
+    for(int y0 = y - h - empty_space; y0 <= y + h + empty_space; y0++) {
       if(x0 < 0 || x0 >= map->width || y0 < 0 || y0 >= map->height) return;
-      if(map->entities[x0 + y0 * map->width] == ENTITY_HOUSE) return;
+      if(map->entities[x0 + y0 * map->width].tile == ENTITY_HOUSE) return;
     }
   }
 
+  // Fill the floor
   for(int x0 = x - w; x0 <= x + w; x0++) {
     for(int y0 = y - h; y0 <= y + h; y0++) {
-      map->entities[x0 + y0 * map->width] = ENTITY_FLOOR;
+      map->entities[x0 + y0 * map->width].tile = ENTITY_FLOOR;
     }
   }
 
-  // Outlines
+  // Outlinesn
+  // Top and bottom
   for(int x0 = x - w; x0 <= x + w; x0++) {
-    map->entities[x0 + (y - h) * map->width] = ENTITY_HOUSE;
-    map->entities[x0 + (y + h) * map->width] = ENTITY_HOUSE;
+    int metadata = METADATA_HOUSE_LEFT_RIGHT;
+
+    if(x0 == x - w) metadata = METADATA_HOUSE_RIGHT_BOTTOM;
+    if(x0 == x + w) metadata = METADATA_HOUSE_LEFT_BOTTOM;
+
+    set_entity(map, x0, y - h, ENTITY_HOUSE, metadata);
+
+    if(x0 == x - w) metadata = METADATA_HOUSE_RIGHT_TOP;
+    if(x0 == x + w) metadata = METADATA_HOUSE_LEFT_TOP;
+
+    set_entity(map, x0, y + h, ENTITY_HOUSE, metadata);
   }
+  // Left and right
   for(int y0 = y - h; y0 <= y + h; y0++) {
-    map->entities[(x - w) + y0 * map->width] = ENTITY_HOUSE;
-    map->entities[(x + w) + y0 * map->width] = ENTITY_HOUSE;
+    int metadata = METADATA_HOUSE_TOP_BOTTOM;
+    
+    if(y0 == y - h) metadata = METADATA_HOUSE_RIGHT_BOTTOM;
+    if(y0 == y + h) metadata = METADATA_HOUSE_RIGHT_TOP;
+    
+    set_entity(map, x - w, y0, ENTITY_HOUSE, metadata);
+
+    if(y0 == y - h) metadata = METADATA_HOUSE_LEFT_BOTTOM;
+    if(y0 == y + h) metadata = METADATA_HOUSE_LEFT_TOP;
+
+    set_entity(map, x + w, y0, ENTITY_HOUSE, metadata);
   }
 
-  // Make door hole
   int side = randomi(4);
   
   int dx, dy;
@@ -138,18 +180,20 @@ void generate_house(Map* map, int x, int y, int w, int h) {
     dx = x - w;
     dy = randomi_range(y - h + 1, y + h);
   }
-  map->entities[dx + dy * map->width] = ENTITY_DOOR;
+
+  // Make door hole
+  map->entities[dx + dy * map->width].tile = ENTITY_DOOR;
 };
 
 void create_map(Map* map, int w, int h) {
   map->width = w;
   map->height = h;
   map->tiles = (int*)malloc(sizeof(int) * w * h);
-  map->entities = (int*)malloc(sizeof(int) * w * h);
+  map->entities = (MapEntity*)malloc(sizeof(MapEntity) * w * h);
 
   for(int i = 0;i < w * h; i++) {
     map->tiles[i] = TILE_UNDEF;
-    map->entities[i] = ENTITY_UNDEF;
+    map->entities[i].tile = ENTITY_UNDEF;
   }
 
   map->biome_pools = (BiomeEntityPool*)malloc(sizeof(BiomeEntityPool) * TILE_COUNT);
@@ -224,8 +268,9 @@ int get_tile_traverse_penalty(Map* map, int tile) {
   };
 };
 
-void set_entity(Map* map, int x, int y, int entity_id) {
-  map->entities[x + y * map->width] = entity_id;
+void set_entity(Map* map, int x, int y, int entity_id, int metadata) {
+  map->entities[x + y * map->width].tile = entity_id;
+  map->entities[x + y * map->width].metadata = metadata;
 };
 
 void generate_map(Map* map, int x, int y, int w, int h) {
@@ -288,7 +333,7 @@ void populate_biome(Map* map, int biome_tile) {
   for(int y = 0;y < map->height;y++) {
     for(int x = 0;x < map->width;x++) {
       if(x == map->width / 2 && y == map->height / 2) continue;
-      if(map->entities[x + y * map->width] != ENTITY_UNDEF) continue;
+      if(map->entities[x + y * map->width].tile != ENTITY_UNDEF) continue;
       int r = randomi(n_entity_pool) * 2;
       int entity = entity_pool[r];
       int chance = entity_pool[r + 1];
@@ -296,14 +341,9 @@ void populate_biome(Map* map, int biome_tile) {
 	if(entity == ENTITY_HOUSE) {
 	  generate_house(map, x, y, randomi_range(3, 5), randomi_range(3, 5));
 	} else {
-	  map->entities[x + y * map->width] = entity;
+	  map->entities[x + y * map->width].tile = entity;
 	}
       }
-    }
-  }
-
-  for(int i = 0;i < map->width * map->height; i++) {
-    if(map->entities[i] == ENTITY_HOUSE) {
     }
   }
 
@@ -323,7 +363,7 @@ int generate_biome_at(Map* map, int _x, int _y) {
 };
 
 int can_move_to(Map* map, int x, int y) {
-  int entity = map->entities[x + y * map->width];
+  int entity = map->entities[x + y * map->width].tile;
   switch(entity) {
     
   case ENTITY_SCRUB:
@@ -336,7 +376,7 @@ int can_move_to(Map* map, int x, int y) {
 
 void try_move_to(Map* map, int x, int y, Status* status) {
   int tile = map->tiles[x + y * map->width];
-  int entity = map->entities[x + y * map->width];
+  int entity = map->entities[x + y * map->width].tile;
 
   if(entity == ENTITY_CACTUS) {
     status->bleeding |= 1;
@@ -347,5 +387,5 @@ void try_move_to(Map* map, int x, int y, Status* status) {
 };
 
 void clear_entities(Map* map) {
-  memset(map->entities, 0, sizeof(int) * map->width * map->height);
+  memset(map->entities, 0, sizeof(MapEntity) * map->width * map->height);
 };

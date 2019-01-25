@@ -54,9 +54,14 @@ void init_status(Status* status, int hp, int hunger, int thirst) {
   status->max_hp = hp;
   status->hunger = hunger;
   status->max_hunger = hunger;
-  status->thirst = thirst;
+  status->thirst = 0;
   status->max_thirst = thirst;
-  
+  status->temp = 10; // What should the 'default temperature' be?
+  status->wet = 0;
+  status->bleeding = 0;
+  status->infected = 0;
+  status->hypothermia = 0;
+  status->heat_stroke = 0;
 }
 
 void apply_status(const Status a, Status* b) {
@@ -88,6 +93,26 @@ int tick_status(Status* status) {
 
   // Hypothermia inflicted damage
   if(status->hypothermia > 0) {
+    if(randomi(1000) > 750) {
+      status->hp--;
+      damage_taken++;
+    }
+  }
+  
+  // Heat stroke if hot & thirsty
+  if(status->temp > 30 && status->thirst <= 250) {
+    // Last multiplier determines how often heat_stroke increases
+    if(randomi(1000) > 1000 + (30 - status->temp) * 4) {
+      status->heat_stroke += 1;
+    }
+  } else { // Heat stroke gets better
+    if(randomi(2) > 0) {
+      status->heat_stroke -= status->heat_stroke > 0 ? 1 : 0;
+    }
+  }
+
+  // Heat stroke inflicted damage
+  if(status->heat_stroke > 0) {
     if(randomi(1000) > 750) {
       status->hp--;
       damage_taken++;
