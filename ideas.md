@@ -4,7 +4,7 @@ Some ideas for the project
 	- Houses should have their own tiles, so temperature
 		could be manageable by staying inside
 	
-- Smaller FOV													[ ]
+- Smaller FOV ???												[ ]
 
 - Stuff in the houses (just random stuff atm)					[ ]
 
@@ -19,6 +19,7 @@ Some ideas for the project
 		enough items that it won't fit one screen
 	- How will the player use the items, maybe have selected
 		item index or smth
+	- Using items [healing, eating, drinking, etc.]				[ ]
 
 - 'Living' entities (friendly and hostile)						[ ]
 	- Cows														[ ]

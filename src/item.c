@@ -210,3 +210,13 @@ int inventory_transfer_to(Inventory* from, Inventory* to) {
   }
   return 0;
 };
+
+int inventory_unique_item_count(Inventory* inventory) {
+  int uniques = 0;
+  for(int i= 0; i < inventory->n_items; i++) {
+    if(inventory->items[i] > 0) {
+      uniques++;
+    }
+  }
+  return uniques;
+};

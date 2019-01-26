@@ -72,9 +72,9 @@ int main(int argc, char** argv) {
     return 1;
   };
 
-  inventory_add_items(&player_inventory, 1, 3);
-  inventory_add_items(&player_inventory, 2, 5);
-  inventory_add_items(&player_inventory, 3, 6); // 6x bread
+  for(int i = 1;i <= item_list.n_items;i++) {
+    inventory_add_items(&player_inventory, i, 1);
+  }
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -154,10 +154,12 @@ int main(int argc, char** argv) {
   // Flags
   int show_character_sheet = 0;
   int show_inventory = 0;
+  int inventory_scroll = 0;
   int mode = MODE_WORLD;
 
   // Input flags so they only trigger once when pressed
   int space_last = 0, c_last = 0, i_last = 0;
+  int up_last = 0, down_last = 0;
 
   // How much player moved this frame
   int d_x = 0, d_y = 0;
@@ -240,6 +242,19 @@ int main(int argc, char** argv) {
       should_render = 1;
       show_inventory = 0;
     } c_last = GetKeyState(0x43) & 0x8000;
+
+    // Inventory scroll (Press up | down)
+    if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
+      inventory_scroll -= inventory_scroll > 0 ? 1 : 0;
+      should_render = 1;
+    } up_last = GetKeyState(VK_UP) & 0x8000;
+
+    if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
+      int item_count = inventory_unique_item_count(&player_inventory);
+      int max_scroll = item_count - CSH + 4;
+      inventory_scroll += inventory_scroll < max_scroll ? 1 : 0;
+      should_render = 1;
+    } down_last = GetKeyState(VK_DOWN) & 0x8000;
 
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
       if(mode == MODE_WORLD) {
@@ -449,12 +464,13 @@ int main(int argc, char** argv) {
 
 	print_string(&screen, "INVENTORY", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
 
-	int line = 0; // Current line we are printing to 
-	for(int i = 0;i < player_inventory.n_items;i++) { // For each item available
+	int line = 2; // Current line we are printing to 
+	for(int i = inventory_scroll; i < player_inventory.n_items; i++) { // For each item available
 	  if(player_inventory.items[i] > 0) { // If the player has any
 	    // Print on the current line the item name + amount
-	    STAT_PRINT(2 + line, "%s x %d", item_list.items[i].name, player_inventory.items[i]);
+	    STAT_PRINT(line, "%s x %d", item_list.items[i].name, player_inventory.items[i]);
 	    line++; // Advance on lines
+	    if(line >= CSH - 2) break;
 	  }
 	}
 	
@@ -466,7 +482,6 @@ int main(int argc, char** argv) {
 	  }
 	}
       }
-
 
       print_console(&screen);
 
