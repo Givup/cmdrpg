@@ -71,6 +71,8 @@ int item_equip_slot(int item_type) {
 
 int use_item_for_status(Item* item, Status* status) {
   switch(item->type) {
+  case ITEM_TYPE_WEAPON:
+    break;
   case ITEM_TYPE_FOOD:
     status->hunger = min(status->hunger + item->metadata, status->max_hunger);
     break;
