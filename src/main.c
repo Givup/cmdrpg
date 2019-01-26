@@ -73,8 +73,7 @@ int main(int argc, char** argv) {
   };
 
   for(int i = 1;i <= item_list.n_items;i++) {
-    int amount = randomi(10);
-    inventory_add_items(&player_inventory, i, 1);
+    inventory_add_items(&player_inventory, i, randomi(11) - 3);
   }
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -248,7 +247,6 @@ int main(int argc, char** argv) {
     // Inventory scroll (Press up | down)
     if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
       if(show_inventory) {
-	// TODO: Inventory scrolling
 	int prev = inventory_get_previous_item(&player_inventory, selected_item);
 	if(prev != -1) {
 	  selected_item = prev;
@@ -263,7 +261,6 @@ int main(int argc, char** argv) {
 
     if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
       if(show_inventory) {
-	// TODO: Inventory scrolling
 	int next = inventory_get_next_item(&player_inventory, selected_item);
 	if(next != -1) {
 	  selected_item = next;
