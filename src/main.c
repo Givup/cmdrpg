@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
   };
 
   for(int i = 1;i <= item_list.n_items;i++) {
-    inventory_add_items(&player_inventory, i, randomi(11) - 3);
+    inventory_add_items(&player_inventory, i, 2);
   }
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
 
   // Input flags so they only trigger once when pressed
   int space_last = 0, c_last = 0, i_last = 0;
-  int up_last = 0, down_last = 0;
+  int up_last = 0, down_last = 0, right_last = 0;
 
   // How much player moved this frame
   int d_x = 0, d_y = 0;
@@ -244,34 +244,38 @@ int main(int argc, char** argv) {
       show_inventory = 0;
     } c_last = GetKeyState(0x43) & 0x8000;
 
-    // Inventory scroll (Press up | down)
+    // Inventory item selection up
     if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
       if(show_inventory) {
 	int prev = inventory_get_previous_item(&player_inventory, selected_item);
 	if(prev != -1) {
 	  selected_item = prev;
-	  int n = inventory_unique_nth_count(&player_inventory, selected_item) - inventory_scroll;
-	  if(n < 0) {
-	    inventory_scroll--;
-	  }
 	  should_render = 1;
 	}
       }
     } up_last = GetKeyState(VK_UP) & 0x8000;
 
+    // Inventory item selection down
     if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
       if(show_inventory) {
 	int next = inventory_get_next_item(&player_inventory, selected_item);
 	if(next != -1) {
 	  selected_item = next;
-	  int n = inventory_unique_nth_count(&player_inventory, selected_item) - inventory_scroll;
-	  if(n >= CSH - 4) {
-	    inventory_scroll++;
-	  }
 	  should_render = 1;
 	}
       }
     } down_last = GetKeyState(VK_DOWN) & 0x8000;
+
+    // Pressing right (Using items)
+    if(GetKeyState(VK_RIGHT) & 0x8000 && right_last == 0) {
+      Item item = item_list.items[selected_item];
+      if(use_item_for_status(&item, &status)) {
+	if(inventory_take_items(&player_inventory, selected_item, 1) == 0) {
+	  selected_item = inventory_get_next_item(&player_inventory, selected_item);
+	}
+	should_render = 1;
+      }
+    } right_last = GetKeyState(VK_RIGHT) & 0x8000;
 
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
       if(mode == MODE_WORLD) {

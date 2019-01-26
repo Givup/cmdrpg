@@ -27,6 +27,9 @@ int get_item_type_from_str(const char* type_str) {
   if(strcmp("heal", type_str) == 0) {
     return ITEM_TYPE_HEAL;
   }
+  if(strcmp("drink", type_str) == 0) {
+    return ITEM_TYPE_DRINK;
+  }
 
   return ITEM_TYPE_UNDEF;
 };
@@ -66,6 +69,23 @@ int item_equip_slot(int item_type) {
   }
 };
 
+int use_item_for_status(Item* item, Status* status) {
+  switch(item->type) {
+  case ITEM_TYPE_FOOD:
+    status->hunger = min(status->hunger + item->metadata, status->max_hunger);
+    break;
+  case ITEM_TYPE_DRINK:
+    status->thirst = min(status->thirst + item->metadata, status->max_thirst);
+    break;
+  case ITEM_TYPE_HEAL:
+    status->hp = min(status->hp + item->metadata, status->max_hp);
+    break;
+  default: return 0;
+  };
+  return 1;
+};
+
+
 /*
   ITEM LIST
  */
@@ -94,7 +114,7 @@ int load_items(ItemList* list, const char* path) {
   for(int i = 0;i < item_count;i++) { 
     // Read item data and create item out of it
     Item item;
-    item.id = i + 1;
+    item.id = i;
 
     for(int j = 0;j < 5;j++) {
       fscanf(f, "%s", buffer);
@@ -174,6 +194,9 @@ int create_inventory(Inventory* inventory, int item_count) {
     return 1;
   }
   memset(inventory->items, 0, sizeof(int) * item_count);
+
+  // Clear equipped items
+  memset(inventory->equipped_items, 0, sizeof(inventory->equipped_items));
   return 0;
 };
 
@@ -183,24 +206,25 @@ int free_inventory(Inventory* inventory) {
 }
 
 int inventory_has_item(Inventory* inventory, int item_id) {
-  if(item_id == 0) return -1; // Invalid item_id
-  return inventory->items[item_id - 1]; // Return amount of items
+  if(item_id < 0) return -1; // Invalid item_id
+  return inventory->items[item_id]; // Return amount of items
 };
 
 int inventory_add_items(Inventory* inventory, int item_id, int amount) {
-  if(item_id <= 0 || amount <= 0) return -1; // Invalid item_id
-  inventory->items[item_id - 1] += amount; // Add items
+  if(item_id < 0 || amount <= 0) return -1; // Invalid item_id or invalid amount
+  inventory->items[item_id] += amount; // Add items
   return 0;
 };
 
 int inventory_take_items(Inventory* inventory, int item_id, int amount) {
-  if(item_id == 0) return -1; // Invalid item_id
-  if(inventory->items[item_id - 1] < amount) { // If there aren't enough items
-    return 1;
+  if(item_id < 0) return -1; // Invalid item_id
+  if(inventory->items[item_id] < amount) { // If there aren't enough items
+    printf("There wasn't enough items.\n");
+    return -1;
   } else { // Remove items
     inventory->items[item_id] -= amount;
   }
-  return 0;
+  return inventory->items[item_id]; // Return the amount of items left
 };
 
 int inventory_transfer_to(Inventory* from, Inventory* to) {
@@ -221,10 +245,10 @@ int inventory_unique_item_count(Inventory* inventory) {
   return uniques;
 };
 
-int inventory_unique_nth_count(Inventory* inventory, int item_index) {
+int inventory_unique_nth_count(Inventory* inventory, int item_id) {
   int n = 0;
   for(int i = 0;i < inventory->n_items;i++) {
-    if(i == item_index) break;
+    if(i == item_id) break;
     if(inventory->items[i] > 0) {
       n++;
     }
@@ -232,19 +256,22 @@ int inventory_unique_nth_count(Inventory* inventory, int item_index) {
   return n;
 };
 
-int inventory_get_next_item(Inventory* inventory, int start_index) {
-  if(start_index >= inventory->n_items) return -1; // OOB
-  if(start_index < 0) start_index = -1; // Special case, when we haven't yet selected anything
-  for(int i = start_index + 1; i < inventory->n_items; i++) {
+int inventory_get_next_item(Inventory* inventory, int current_id) {
+  if(inventory_unique_item_count(inventory) == 0) return -1; // If there aren't any items in the inventory
+  int i = current_id;
+  while(1) {
+    i++;
+    if(i >= inventory->n_items) i = 0;
     if(inventory->items[i] > 0) return i;
   }
-  return -1;
 };
 
-int inventory_get_previous_item(Inventory* inventory, int start_index) {
-  if(start_index < 0 || start_index >= inventory->n_items) return -1; // OOB
-  for(int i = start_index - 1; i >= 0;i--) {
+int inventory_get_previous_item(Inventory* inventory, int current_id) {
+  if(inventory_unique_item_count(inventory) == 0) return -1;
+  int i = current_id;
+  while(1) {
+    i--;
+    if(i < 0) i = inventory->n_items - 1;
     if(inventory->items[i] > 0) return i;
   }
-  return -1;
 };
