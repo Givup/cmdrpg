@@ -73,7 +73,9 @@ int main(int argc, char** argv) {
   };
 
   for(int i = 1;i <= item_list.n_items;i++) {
-    inventory_add_items(&player_inventory, i, 1);
+    int amount = randomi(i);
+    inventory_add_items(&player_inventory, i, amount);
+    printf("i: %d, count: %d n: %d\n", i, player_inventory.items[i - 1], inventory_unique_nth_count(&player_inventory, i - 1));
   }
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -155,6 +157,7 @@ int main(int argc, char** argv) {
   int show_character_sheet = 0;
   int show_inventory = 0;
   int inventory_scroll = 0;
+  int selected_item = inventory_get_next_item(&player_inventory, -1);
   int mode = MODE_WORLD;
 
   // Input flags so they only trigger once when pressed
@@ -245,15 +248,25 @@ int main(int argc, char** argv) {
 
     // Inventory scroll (Press up | down)
     if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
-      inventory_scroll -= inventory_scroll > 0 ? 1 : 0;
-      should_render = 1;
+      if(show_inventory) {
+	// TODO: Inventory scrolling
+	int prev = inventory_get_previous_item(&player_inventory, selected_item);
+	if(prev != -1) {
+	  selected_item = prev;
+	  should_render = 1;
+	}
+      }
     } up_last = GetKeyState(VK_UP) & 0x8000;
 
     if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
-      int item_count = inventory_unique_item_count(&player_inventory);
-      int max_scroll = item_count - CSH + 4;
-      inventory_scroll += inventory_scroll < max_scroll ? 1 : 0;
-      should_render = 1;
+      if(show_inventory) {
+	// TODO: Inventory scrolling
+	int next = inventory_get_next_item(&player_inventory, selected_item);
+	if(next != -1) {
+	  selected_item = next;
+	  should_render = 1;
+	}
+      }
     } down_last = GetKeyState(VK_DOWN) & 0x8000;
 
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
@@ -434,10 +447,11 @@ int main(int argc, char** argv) {
 	STAT_PRINT(4, " Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
 	
 	for(int y = 0;y < CSH;y++) {
+	  int color = FG_WHITE;
 	  if(x == 0) {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + 1, y, ALIGN_LEFT);
+	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  } else {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + CSW - 2, y, ALIGN_RIGHT);
+	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + CSW - 2, y, ALIGN_RIGHT);
 	  }
 	}
       }
@@ -468,17 +482,20 @@ int main(int argc, char** argv) {
 	for(int i = inventory_scroll; i < player_inventory.n_items; i++) { // For each item available
 	  if(player_inventory.items[i] > 0) { // If the player has any
 	    // Print on the current line the item name + amount
-	    STAT_PRINT(line, "%s x %d", item_list.items[i].name, player_inventory.items[i]);
+	    STAT_PRINT(line, "[%c] %s x %d", i == selected_item ? 'x' : ' ',
+		       item_list.items[i].name,
+		       player_inventory.items[i]);
 	    line++; // Advance on lines
-	    if(line >= CSH - 2) break;
+	    if(line >= CSH - 2) break; // Don't render over the sheet
 	  }
 	}
 	
 	for(int y = 0;y < CSH;y++) {
+	  int color = inventory_unique_nth_count(&player_inventory, selected_item) == y - 2 ? FG_LIGHT_RED : FG_WHITE;
 	  if(x == 0) {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + 1, y, ALIGN_LEFT);
+	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  } else {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + CSW - 2, y, ALIGN_RIGHT);
+	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + CSW - 2, y, ALIGN_RIGHT);
 	  }
 	}
       }

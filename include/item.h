@@ -54,5 +54,9 @@ extern int inventory_add_items(Inventory*, int, int);
 extern int inventory_take_items(Inventory*, int, int);
 extern int inventory_transfer_to(Inventory*, Inventory*);
 extern int inventory_unique_item_count(Inventory*);
+extern int inventory_unique_nth_count(Inventory*, int);
+
+extern int inventory_get_next_item(Inventory*, int);
+extern int inventory_get_previous_item(Inventory*, int);
 
 #endif

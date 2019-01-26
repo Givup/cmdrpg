@@ -188,7 +188,7 @@ int inventory_has_item(Inventory* inventory, int item_id) {
 };
 
 int inventory_add_items(Inventory* inventory, int item_id, int amount) {
-  if(item_id == 0) return -1; // Invalid item_id
+  if(item_id <= 0 || amount <= 0) return -1; // Invalid item_id
   inventory->items[item_id - 1] += amount; // Add items
   return 0;
 };
@@ -219,4 +219,32 @@ int inventory_unique_item_count(Inventory* inventory) {
     }
   }
   return uniques;
+};
+
+int inventory_unique_nth_count(Inventory* inventory, int item_index) {
+  int n = 0;
+  for(int i = 0;i < inventory->n_items;i++) {
+    if(i == item_index) break;
+    if(inventory->items[i] > 0) {
+      n++;
+    }
+  }
+  return n;
+};
+
+int inventory_get_next_item(Inventory* inventory, int start_index) {
+  if(start_index >= inventory->n_items) return -1; // OOB
+  if(start_index < 0) start_index = -1; // Special case, when we haven't yet selected anything
+  for(int i = start_index + 1; i < inventory->n_items; i++) {
+    if(inventory->items[i] > 0) return i;
+  }
+  return -1;
+};
+
+int inventory_get_previous_item(Inventory* inventory, int start_index) {
+  if(start_index < 0 || start_index >= inventory->n_items) return -1; // OOB
+  for(int i = start_index - 1; i >= 0;i--) {
+    if(inventory->items[i] > 0) return i;
+  }
+  return -1;
 };
