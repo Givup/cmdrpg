@@ -73,9 +73,8 @@ int main(int argc, char** argv) {
   };
 
   for(int i = 1;i <= item_list.n_items;i++) {
-    int amount = randomi(i);
-    inventory_add_items(&player_inventory, i, amount);
-    printf("i: %d, count: %d n: %d\n", i, player_inventory.items[i - 1], inventory_unique_nth_count(&player_inventory, i - 1));
+    int amount = randomi(10);
+    inventory_add_items(&player_inventory, i, 1);
   }
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -253,6 +252,10 @@ int main(int argc, char** argv) {
 	int prev = inventory_get_previous_item(&player_inventory, selected_item);
 	if(prev != -1) {
 	  selected_item = prev;
+	  int n = inventory_unique_nth_count(&player_inventory, selected_item) - inventory_scroll;
+	  if(n < 0) {
+	    inventory_scroll--;
+	  }
 	  should_render = 1;
 	}
       }
@@ -264,6 +267,10 @@ int main(int argc, char** argv) {
 	int next = inventory_get_next_item(&player_inventory, selected_item);
 	if(next != -1) {
 	  selected_item = next;
+	  int n = inventory_unique_nth_count(&player_inventory, selected_item) - inventory_scroll;
+	  if(n >= CSH - 4) {
+	    inventory_scroll++;
+	  }
 	  should_render = 1;
 	}
       }
@@ -491,7 +498,7 @@ int main(int argc, char** argv) {
 	}
 	
 	for(int y = 0;y < CSH;y++) {
-	  int color = inventory_unique_nth_count(&player_inventory, selected_item) == y - 2 ? FG_LIGHT_RED : FG_WHITE;
+	  int color = inventory_unique_nth_count(&player_inventory, selected_item) - inventory_scroll == y - 2 ? FG_LIGHT_RED : FG_WHITE;
 	  if(x == 0) {
 	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  } else {
