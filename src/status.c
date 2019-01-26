@@ -54,7 +54,7 @@ void init_status(Status* status, int hp, int hunger, int thirst) {
   status->max_hp = hp;
   status->hunger = hunger;
   status->max_hunger = hunger;
-  status->thirst = 0;
+  status->thirst = thirst;
   status->max_thirst = thirst;
   status->temp = 10; // What should the 'default temperature' be?
   status->wet = 0;

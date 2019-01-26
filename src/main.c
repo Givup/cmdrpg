@@ -15,7 +15,7 @@
 
 // Macros
 // Character screen status print
-#define STAT_PRINT(y, format, ...) snprintf(stat_buffer + y * (CSW + 1), CSW, format, __VA_ARGS__);
+#define STAT_PRINT(y, format, ...) snprintf(stat_buffer + (y) * (CSW + 1), CSW, format, __VA_ARGS__);
 
 // Status line (bottom one) print
 #define STATUS_LINE_PRINT(color, y, format, ...) print_len = snprintf(line_buffer, SW - printed, format, __VA_ARGS__); \
@@ -71,6 +71,10 @@ int main(int argc, char** argv) {
     printf("Failed to create inventory.\n");
     return 1;
   };
+
+  inventory_add_items(&player_inventory, 1, 3);
+  inventory_add_items(&player_inventory, 2, 5);
+  inventory_add_items(&player_inventory, 3, 6); // 6x bread
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -149,10 +153,11 @@ int main(int argc, char** argv) {
 
   // Flags
   int show_character_sheet = 0;
+  int show_inventory = 0;
   int mode = MODE_WORLD;
 
   // Input flags so they only trigger once when pressed
-  int space_last = 0, c_last = 0;
+  int space_last = 0, c_last = 0, i_last = 0;
 
   // How much player moved this frame
   int d_x = 0, d_y = 0;
@@ -222,9 +227,18 @@ int main(int argc, char** argv) {
       break;
     }
 
+    // Toggle inventory (Press I)
+    if(GetKeyState(0x49) & 0x8000 && i_last == 0) {
+      show_inventory = ~show_inventory & 1;
+      should_render = 1;
+      show_character_sheet = 0;
+    } i_last = GetKeyState(0x49) & 0x8000;
+    
+    // Toggle character sheet (Press C)
     if(GetKeyState(0x43) & 0x8000 && c_last == 0) {
       show_character_sheet = ~show_character_sheet & 1;
       should_render = 1;
+      show_inventory = 0;
     } c_last = GetKeyState(0x43) & 0x8000;
 
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
@@ -382,6 +396,7 @@ int main(int argc, char** argv) {
       snprintf(line_buffer, SW, "Temp: %d*C", status.temp);
       print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
 
+      // Character sheet
       if(show_character_sheet) {
 	int x = 0;
 	if(px < SW / 2 + 1) {
@@ -398,9 +413,10 @@ int main(int argc, char** argv) {
 	char stat_buffer[(CSW + 1) * CSH];
 	memset(stat_buffer, 0, (CSW + 1) * CSH);
 
-	STAT_PRINT(1, " Health: %d / %d", status.hp, status.max_hp);
-	STAT_PRINT(2, " Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
-	STAT_PRINT(3, " Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
+	print_string(&screen, "STATUS", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
+	STAT_PRINT(2, " Health: %d / %d", status.hp, status.max_hp);
+	STAT_PRINT(3, " Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
+	STAT_PRINT(4, " Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
 	
 	for(int y = 0;y < CSH;y++) {
 	  if(x == 0) {
@@ -410,6 +426,47 @@ int main(int argc, char** argv) {
 	  }
 	}
       }
+
+      // Inventory
+      if(show_inventory) {
+	// If the inventory should be shown on the left side of the screen or the right side.
+	int x = 0;
+	if(px < SW / 2 + 1) {
+	  x = SW - CSW;
+	}
+
+	// Sheet background buffer
+	char c_buffer[CSW + 1];
+	c_buffer[CSW] = 0;
+	memset(c_buffer, ' ', CSW);
+	for(int y = 0;y < CSH; y++) {
+	  print_string(&screen, c_buffer, FG_WHITE, x, y, ALIGN_LEFT);
+	}
+
+	// 'Status line' buffer
+	char stat_buffer[(CSW + 1) * CSH];
+	memset(stat_buffer, 0, (CSW + 1) * CSH);
+
+	print_string(&screen, "INVENTORY", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
+
+	int line = 0; // Current line we are printing to 
+	for(int i = 0;i < player_inventory.n_items;i++) { // For each item available
+	  if(player_inventory.items[i] > 0) { // If the player has any
+	    // Print on the current line the item name + amount
+	    STAT_PRINT(2 + line, "%s x %d", item_list.items[i].name, player_inventory.items[i]);
+	    line++; // Advance on lines
+	  }
+	}
+	
+	for(int y = 0;y < CSH;y++) {
+	  if(x == 0) {
+	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + 1, y, ALIGN_LEFT);
+	  } else {
+	    print_string(&screen, stat_buffer + y * (CSW + 1), FG_WHITE, x + CSW - 2, y, ALIGN_RIGHT);
+	  }
+	}
+      }
+
 
       print_console(&screen);
 
