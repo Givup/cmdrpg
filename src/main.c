@@ -12,6 +12,7 @@
 #include "map.h"
 #include "status.h"
 #include "item.h"
+#include "weapon.h"
 
 #define AUDIO_DISABLE 1
 
@@ -470,10 +471,22 @@ int main(int argc, char** argv) {
 	int body = player_inventory.equipped_items[EQUIP_SLOT_BODY];
 	int legs = player_inventory.equipped_items[EQUIP_SLOT_LEGS];
 
-	STAT_PRINT(6, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "None");
+	STAT_PRINT(6, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "Fists");
 	STAT_PRINT(7, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
 	STAT_PRINT(8, "BODY: %s", body != -1 ? item_list.items[body].name : "None");
 	STAT_PRINT(9, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
+
+	if(wpn != -1) {
+	int w_meta = item_list.items[wpn].metadata;
+
+	int dmg_type_physical = w_meta & 0x0F;
+	int dmg_type_magical = w_meta & 0xF0;
+
+	STAT_PRINT(11, "DMG: %d", get_damage_from_metadata(w_meta));
+	STAT_PRINT(12, "%s %s", 
+		   dmg_type_magical ? get_damage_type_str(dmg_type_magical) : "", 
+		   dmg_type_physical ? get_damage_type_str(dmg_type_physical) : "");
+	}
 
 	for(int y = 0;y < CSH;y++) {
 	  int color = FG_WHITE;

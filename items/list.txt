@@ -1,4 +1,4 @@
-9
+12
 
 type misc
 name Gold
@@ -10,13 +10,31 @@ type weapon
 name Wooden_Sword
 desc A_sword_made_of_wood
 price 10
-metadata 0
+metadata 513
 
 type weapon
 name Iron_Sword
 desc A_sword_made_of_iron
 price 100
-metadata 0
+metadata 1281
+
+type weapon
+name Fire_Sword
+desc A_flaming_sword
+price 1250
+metadata 3873
+
+type weapon
+name Ice_Mace
+desc A_freezing_sword
+price 1250
+metadata 3908
+
+type weapon
+name Shocking_Pike
+desc Shocking
+price 1250
+metadata 3858
 
 type food
 name Bread
