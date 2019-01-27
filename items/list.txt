@@ -1,4 +1,4 @@
-6
+9
 
 type misc
 name Gold
@@ -35,3 +35,21 @@ name Bottle_of_Water
 desc A_refreshing_bottle_of_water
 price 25
 metadata 250
+
+type armor_head
+name Leather_cap
+desc A_simple_cap_made_out_of_leather
+price 7
+metadata 0
+
+type armor_body
+name Leather_jacket
+desc A_simple_jacket_made_out_of_leather
+price 10
+metadata 0
+
+type armor_legs
+name Leather_boots
+desc Simple_boots_made_out_of_leather
+price 3
+metadata 0

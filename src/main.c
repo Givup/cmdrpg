@@ -466,8 +466,14 @@ int main(int argc, char** argv) {
 	STAT_PRINT(4, "Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
 
 	int wpn = player_inventory.equipped_items[EQUIP_SLOT_WEAPON];
+	int head = player_inventory.equipped_items[EQUIP_SLOT_HEAD];
+	int body = player_inventory.equipped_items[EQUIP_SLOT_BODY];
+	int legs = player_inventory.equipped_items[EQUIP_SLOT_LEGS];
 
 	STAT_PRINT(6, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "None");
+	STAT_PRINT(7, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
+	STAT_PRINT(8, "BODY: %s", body != -1 ? item_list.items[body].name : "None");
+	STAT_PRINT(9, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
 
 	for(int y = 0;y < CSH;y++) {
 	  int color = FG_WHITE;

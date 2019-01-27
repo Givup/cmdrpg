@@ -281,15 +281,32 @@ int use_item_for_status(Item* item, Status* status) {
 };
 
 int use_item_for_equipment(Item* item, Inventory* inventory) {
+
+  int slot = -1;
+  
   switch(item->type) {
   case ITEM_TYPE_WEAPON:
-    if(inventory->equipped_items[EQUIP_SLOT_WEAPON] == item->id) {
-      inventory->equipped_items[EQUIP_SLOT_WEAPON] = -1;
-    } else {
-      inventory->equipped_items[EQUIP_SLOT_WEAPON] = item->id;
-    }
+    slot = EQUIP_SLOT_WEAPON;
+    break;
+  case ITEM_TYPE_ARMOR_HEAD:
+    slot = EQUIP_SLOT_HEAD;
+    break;
+  case ITEM_TYPE_ARMOR_BODY:
+    slot = EQUIP_SLOT_BODY;
+    break;
+  case ITEM_TYPE_ARMOR_LEGS:
+    slot = EQUIP_SLOT_LEGS;
     break;
   default: return 0;
   }
+
+  if(slot != -1) {
+    if(inventory->equipped_items[slot] == item->id) {
+      inventory->equipped_items[slot] = -1;
+    } else {
+      inventory->equipped_items[slot] = item->id;
+    }
+  }
+
   return 1;
 };
