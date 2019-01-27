@@ -310,4 +310,3 @@ int use_item_for_equipment(Item* item, Inventory* inventory) {
 
   return 1;
 };
-

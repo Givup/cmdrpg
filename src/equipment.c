@@ -1,4 +1,4 @@
-#include "weapon.h"
+#include "equipment.h"
 
 const char* get_damage_type_str(int type) {
   switch(type) {
@@ -19,6 +19,13 @@ int get_damage_type_from_metadata(int metadata) {
   return metadata & 0xFF;
 };
 
-int get_damage_from_metadata(int metadata) {
+int get_value_from_metadata(int metadata) {
   return (metadata & 0xFF00) >> 8;
+};
+
+int get_type_value_from_metadata(int type, int meta) {
+  if((meta & type) > 0) {
+    return get_value_from_metadata(meta);
+  }
+  return 0;
 };

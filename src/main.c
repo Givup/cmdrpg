@@ -12,7 +12,7 @@
 #include "map.h"
 #include "status.h"
 #include "item.h"
-#include "weapon.h"
+#include "equipment.h"
 
 #define AUDIO_DISABLE 1
 
@@ -477,15 +477,65 @@ int main(int argc, char** argv) {
 	STAT_PRINT(9, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
 
 	if(wpn != -1) {
-	int w_meta = item_list.items[wpn].metadata;
+	  int w_meta = item_list.items[wpn].metadata;
 
-	int dmg_type_physical = w_meta & 0x0F;
-	int dmg_type_magical = w_meta & 0xF0;
+	  int dmg_type_physical = w_meta & 0x0F;
+	  int dmg_type_magical = w_meta & 0xF0;
 
-	STAT_PRINT(11, "DMG: %d", get_damage_from_metadata(w_meta));
-	STAT_PRINT(12, "%s %s", 
-		   dmg_type_magical ? get_damage_type_str(dmg_type_magical) : "", 
-		   dmg_type_physical ? get_damage_type_str(dmg_type_physical) : "");
+	  STAT_PRINT(11, "DMG: %d", get_value_from_metadata(w_meta));
+	  STAT_PRINT(12, "%s %s",
+		     dmg_type_magical ? get_damage_type_str(dmg_type_magical) : "", 
+		     dmg_type_physical ? get_damage_type_str(dmg_type_physical) :"");
+	} else {
+	  STAT_PRINT(11, "Offensive", 0);
+	  STAT_PRINT(12, "DMG: 1", 0);
+	  STAT_PRINT(13, "%s", get_damage_type_str(DAMAGE_TYPE_BLUNT));
+	}
+
+	{
+	  int h_meta = head != -1 ? item_list.items[head].metadata : 0;
+	  int b_meta = body != -1 ? item_list.items[body].metadata : 0;
+	  int l_meta = legs != -1 ? item_list.items[legs].metadata : 0;
+
+	  int slash_armor = 0;
+	  int thrust_armor = 0;
+	  int blunt_armor = 0;
+
+	  int shock_armor = 0;
+	  int fire_armor = 0;
+	  int ice_armor = 0;
+
+	  slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, h_meta);
+	  slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, b_meta);
+	  slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, l_meta);
+	  
+	  thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, h_meta);
+	  thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, b_meta);
+	  thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, l_meta);
+	  
+	  blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, h_meta);
+	  blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, b_meta);
+	  blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, l_meta);
+
+	  shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, h_meta);
+	  shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, b_meta);
+	  shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, l_meta);
+
+	  fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, h_meta);
+	  fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, b_meta);
+	  fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, l_meta);
+
+	  ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, h_meta);
+	  ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, b_meta);
+	  ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, l_meta);
+
+	  STAT_PRINT(15, "Defensive", 0);
+	  STAT_PRINT(16, "Slash: %d", slash_armor);
+	  STAT_PRINT(17, "Thrust: %d", thrust_armor);
+	  STAT_PRINT(18, "Blunt: %d", blunt_armor);
+	  STAT_PRINT(19, "Shock: %d", shock_armor);
+	  STAT_PRINT(20, "Fire: %d", fire_armor);
+	  STAT_PRINT(21, "Ice: %d", ice_armor);
 	}
 
 	for(int y = 0;y < CSH;y++) {

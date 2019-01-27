@@ -8,3 +8,7 @@ Console won't accept input if any other window (or none) is selected when the ap
 When listing inventory, sometimes the scrolling and selection
 	go offsync, but sometimes it doesn't. Could be a bug
 	in inventory_unique_nth_count, or inventory_unique_item_count
+	
+@Equipment
+Equipment can deal/protect from two different types that are
+	of same category (physical/magical)
