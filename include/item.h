@@ -18,9 +18,10 @@
 #define ITEM_TYPE_WEAPON     30
 #define ITEM_TYPE_WEAPON_OFF 31
 
-#define EQUIP_SLOT_HEAD 1
-#define EQUIP_SLOT_BODY 2
-#define EQUIP_SLOT_LEGS 3
+#define EQUIP_SLOT_WEAPON 0
+#define EQUIP_SLOT_HEAD   1
+#define EQUIP_SLOT_BODY   2
+#define EQUIP_SLOT_LEGS   3
 
 typedef struct {
   int id;
@@ -33,8 +34,6 @@ typedef struct {
 
 extern int is_item_equipable(int);
 extern int item_equip_slot(int);
-
-extern int use_item_for_status(Item*, Status*);
 
 typedef struct {
   Item* items;
@@ -49,7 +48,7 @@ extern int get_item_by_name(ItemList*, const char*);
 typedef struct {
   int* items; // Contains the amount of items by id
   int n_items; // Item count
-  int equipped_items[3];
+  int equipped_items[4]; // Weapon, helm, torso, legs
 } Inventory;
 
 extern int create_inventory(Inventory*, int);
@@ -63,5 +62,9 @@ extern int inventory_unique_nth_count(Inventory*, int);
 
 extern int inventory_get_next_item(Inventory*, int);
 extern int inventory_get_previous_item(Inventory*, int);
+
+// Item usage
+extern int use_item_for_status(Item*, Status*);
+extern int use_item_for_equipment(Item*, Inventory*);
 
 #endif

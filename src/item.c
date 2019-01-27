@@ -72,24 +72,6 @@ int item_equip_slot(int item_type) {
   }
 };
 
-int use_item_for_status(Item* item, Status* status) {
-  switch(item->type) {
-  case ITEM_TYPE_WEAPON:
-    break;
-  case ITEM_TYPE_FOOD:
-    status->hunger = min(status->hunger + item->metadata, status->max_hunger);
-    break;
-  case ITEM_TYPE_DRINK:
-    status->thirst = min(status->thirst + item->metadata, status->max_thirst);
-    break;
-  case ITEM_TYPE_HEAL:
-    status->hp = min(status->hp + item->metadata, status->max_hp);
-    break;
-  default: return 0;
-  };
-  return 1;
-};
-
 
 /*
   ITEM LIST
@@ -200,7 +182,9 @@ int create_inventory(Inventory* inventory, int item_count) {
   memset(inventory->items, 0, sizeof(int) * item_count);
 
   // Clear equipped items
-  memset(inventory->equipped_items, 0, sizeof(inventory->equipped_items));
+  for(int e = 0; e < sizeof(inventory->equipped_items) / sizeof(int); e++) {
+    inventory->equipped_items[e] = -1;
+  }
   return 0;
 };
 
@@ -278,4 +262,34 @@ int inventory_get_previous_item(Inventory* inventory, int current_id) {
     if(i < 0) i = inventory->n_items - 1;
     if(inventory->items[i] > 0) return i;
   }
+};
+
+int use_item_for_status(Item* item, Status* status) {
+  switch(item->type) {
+  case ITEM_TYPE_FOOD:
+    status->hunger = min(status->hunger + item->metadata, status->max_hunger);
+    break;
+  case ITEM_TYPE_DRINK:
+    status->thirst = min(status->thirst + item->metadata, status->max_thirst);
+    break;
+  case ITEM_TYPE_HEAL:
+    status->hp = min(status->hp + item->metadata, status->max_hp);
+    break;
+  default: return 0;
+  };
+  return 1;
+};
+
+int use_item_for_equipment(Item* item, Inventory* inventory) {
+  switch(item->type) {
+  case ITEM_TYPE_WEAPON:
+    if(inventory->equipped_items[EQUIP_SLOT_WEAPON] == item->id) {
+      inventory->equipped_items[EQUIP_SLOT_WEAPON] = -1;
+    } else {
+      inventory->equipped_items[EQUIP_SLOT_WEAPON] = item->id;
+    }
+    break;
+  default: return 0;
+  }
+  return 1;
 };

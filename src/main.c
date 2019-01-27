@@ -276,8 +276,10 @@ int main(int argc, char** argv) {
 	if(inventory_take_items(&player_inventory, selected_item, 1) == 0) {
 	  selected_item = inventory_get_next_item(&player_inventory, selected_item);
 	}
-	should_render = 1;
+      } else if(use_item_for_equipment(&item, &player_inventory)) {
+	
       }
+      should_render = 1;
     } right_last = GetKeyState(VK_RIGHT) & 0x8000;
 
     if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
@@ -459,10 +461,14 @@ int main(int argc, char** argv) {
 	memset(stat_buffer, 0, (CSW + 1) * CSH);
 
 	print_string(&screen, "STATUS", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
-	STAT_PRINT(2, " Health: %d / %d", status.hp, status.max_hp);
-	STAT_PRINT(3, " Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
-	STAT_PRINT(4, " Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
-	
+	STAT_PRINT(2, "Health: %d / %d", status.hp, status.max_hp);
+	STAT_PRINT(3, "Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
+	STAT_PRINT(4, "Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
+
+	int wpn = player_inventory.equipped_items[EQUIP_SLOT_WEAPON];
+
+	STAT_PRINT(6, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "None");
+
 	for(int y = 0;y < CSH;y++) {
 	  int color = FG_WHITE;
 	  if(x == 0) {

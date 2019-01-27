@@ -43,7 +43,7 @@ WORD get_tile_attributes(int tile) {
   case TILE_FOREST: return FG_LIGHT_GREEN | BG_GREEN;
   case TILE_ROCK: return FG_LIGHT_GRAY | BG_GRAY;
   case TILE_MOUNTAIN: return FG_WHITE | BG_LIGHT_GRAY;
-  case TILE_FLOOR: return BG_LIGHT_YELLOW | FG_YELLOW;
+  case TILE_FLOOR: return BG_LIGHT_GRAY;
   default: return FG_MAGENTA;
   }
 };
@@ -80,8 +80,8 @@ WORD get_entity_attributes(int entity) {
   case ENTITY_SCRUB: return FG_RED;
   case ENTITY_WALKED_SNOW: return FG_WHITE;
   case ENTITY_HOUSE:
-  case ENTITY_DOOR: 
-  case ENTITY_FLOOR: return FG_RED;
+  case ENTITY_FLOOR: return FG_BLACK;
+  case ENTITY_DOOR: return FG_RED;
   case ENTITY_MONEY: return FG_LIGHT_GREEN;
   default: return FG_MAGENTA | BG_MAGENTA;
   }
