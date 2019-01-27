@@ -30,6 +30,9 @@ int get_item_type_from_str(const char* type_str) {
   if(strcmp("drink", type_str) == 0) {
     return ITEM_TYPE_DRINK;
   }
+  if(strcmp("misc", type_str) == 0) {
+    return ITEM_TYPE_MISC;
+  }
 
   return ITEM_TYPE_UNDEF;
 };
@@ -163,7 +166,6 @@ int load_items(ItemList* list, const char* path) {
     }
     list->items[i] = item;
   }
-
   return 0;
 };
 

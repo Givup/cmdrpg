@@ -13,6 +13,8 @@
 #include "status.h"
 #include "item.h"
 
+#define AUDIO_DISABLE 1
+
 // Macros
 // Character screen status print
 #define STAT_PRINT(y, format, ...) snprintf(stat_buffer + (y) * (CSW + 1), CSW, format, __VA_ARGS__);
@@ -72,7 +74,7 @@ int main(int argc, char** argv) {
     return 1;
   };
 
-  for(int i = 1;i <= item_list.n_items;i++) {
+  for(int i = 0;i < item_list.n_items;i++) {
     inventory_add_items(&player_inventory, i, 2);
   }
 
@@ -89,7 +91,7 @@ int main(int argc, char** argv) {
   }
   show_cursor(&screen, FALSE); // Disable cursor blinking
 
-  // TODO: Find out why buffer_size matters for the audio so much
+#if (AUDIO_DISABLE == 0)
   // Create audio output device
   AudioODevice output_device;
   if(create_output_device(&output_device, 8, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
@@ -105,13 +107,11 @@ int main(int argc, char** argv) {
   }
 
   // Load background music from wav file
-  /*
   AudioData music;
   if(load_audio_data_from_ogg(&music, "Duet_for_Violin_and_Piano.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
-  */
 
   // Create mixer for output device
   AudioMixer mixer;
@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
 
   // Print all the output devices for the fun of it
   enumerate_output_devices(output_device.win_format);
+#endif
 
   // Line buffer, so we don't have to re-allocate memory every frame
   char line_buffer[SW + 1];
@@ -182,6 +183,7 @@ int main(int argc, char** argv) {
     total_time += dt;
     reset_clock(&runtime_clock);
 
+#if AUDIO_DISABLE == 0
     // If there is a free audio buffer available
     if(output_device.buffers_available > 0) {
       // Prepare mixer to receive data (clear last packet data)
@@ -208,6 +210,7 @@ int main(int argc, char** argv) {
       // Actually push the audio data to the output device
       queue_data_to_output_device(&output_device, &mixer);
     }
+#endif
 
     // If the window is not focused, don't bother updating
     if(window_handle != GetForegroundWindow()) continue;
@@ -334,6 +337,12 @@ int main(int argc, char** argv) {
 
 	px = (px + map.width) % map.width;
 	py = (py + map.height) % map.height;
+
+	MapEntity* entity = get_entity(&map, px, py);
+	if(entity->tile == ENTITY_MONEY) {
+	  inventory_add_items(&player_inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
+	  set_entity(&map, px, py, ENTITY_UNDEF, 0);
+	}
 
 	env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
       }
@@ -519,10 +528,11 @@ int main(int argc, char** argv) {
   free_map(&map);
   free_screen(&screen);
 
-  // free_audio_data(&music);
+#if AUDIO_DISABLE == 0
+  free_audio_data(&music);
   free_audio_data(&hurt);
-
   free_output_device(&output_device);
+#endif
 
   free_inventory(&player_inventory);
   free_items(&item_list);

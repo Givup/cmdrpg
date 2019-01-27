@@ -19,7 +19,6 @@ Some ideas for the project
 		enough items that it won't fit one screen
 	- How will the player use the items, maybe have selected
 		item index or smth
-	- Using items [healing, eating, drinking, etc.]				[ ]
 
 - 'Living' entities (friendly and hostile)						[ ]
 	- Cows														[ ]

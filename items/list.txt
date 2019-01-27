@@ -1,4 +1,10 @@
-5
+6
+
+type misc
+name Gold
+desc A_gold_piece_mostly_used_for_trading
+price 1
+metadata 0
 
 type weapon
 name Wooden_Sword
