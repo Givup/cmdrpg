@@ -573,8 +573,18 @@ int main(int argc, char** argv) {
 	int line = 2; // Current line we are printing to 
 	for(int i = inventory_scroll; i < player_inventory.n_items; i++) { // For each item available
 	  if(player_inventory.items[i] > 0) { // If the player has any
+
+	    int can_equip = is_item_equipable(item_list.items[i].type);
+
+	    int equipped = (i == player_inventory.equipped_items[EQUIP_SLOT_WEAPON])
+	      | (i == player_inventory.equipped_items[EQUIP_SLOT_HEAD])
+	      | (i == player_inventory.equipped_items[EQUIP_SLOT_BODY])
+	      | (i == player_inventory.equipped_items[EQUIP_SLOT_LEGS]);
+
 	    // Print on the current line the item name + amount
-	    STAT_PRINT(line, "[%c] %s x %d", i == selected_item ? 'x' : ' ',
+	    STAT_PRINT(line, "%s%s%s %s x %d", can_equip ? "[" : "",
+		       equipped ? "x" : " ",
+		       can_equip ? "]" : "",
 		       item_list.items[i].name,
 		       player_inventory.items[i]);
 	    line++; // Advance on lines

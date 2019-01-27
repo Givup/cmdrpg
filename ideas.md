@@ -17,9 +17,9 @@ Some ideas for the project
 	- You should be able to scroll the item list, but
 		this will only be a problem once we have
 		enough items that it won't fit one screen
-	- How will the player use the items, maybe have selected
-		item index or smth
-
+	- Different selection color depending on the type of
+		the item (consumable could be green for example)
+		
 - 'Living' entities (friendly and hostile)						[ ]
 	- Cows														[ ]
 

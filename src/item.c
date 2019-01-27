@@ -54,6 +54,7 @@ void strreplace(char* str, char find, char replacor) {
 // Should this be filled in runtime, instead of hardcoding it?
 int is_item_equipable(int item_type) {
   switch(item_type) {
+  case ITEM_TYPE_WEAPON:
   case ITEM_TYPE_ARMOR_HEAD:
   case ITEM_TYPE_ARMOR_BODY:
   case ITEM_TYPE_ARMOR_LEGS: return 1;
@@ -310,4 +311,3 @@ int use_item_for_equipment(Item* item, Inventory* inventory) {
 
   return 1;
 };
-
