@@ -1,4 +1,4 @@
-12
+13
 
 type misc
 name Gold
@@ -71,3 +71,9 @@ name Leather_boots
 desc Simple_boots_made_out_of_leather
 price 3
 metadata 577
+
+type armor_body
+name Iron_Platebody
+desc A_plate_armor_made_of_iron
+price 100
+metadata 2083

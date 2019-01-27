@@ -582,9 +582,9 @@ int main(int argc, char** argv) {
 	      | (i == player_inventory.equipped_items[EQUIP_SLOT_LEGS]);
 
 	    // Print on the current line the item name + amount
-	    STAT_PRINT(line, "%s%s%s %s x %d", can_equip ? "[" : "",
-		       equipped ? "x" : " ",
-		       can_equip ? "]" : "",
+	    STAT_PRINT(line, "%s%s%s%s x %d", can_equip ? "[" : "",
+		       can_equip ? (equipped ? "x" : " ") : "",
+		       can_equip ? "] " : "",
 		       item_list.items[i].name,
 		       player_inventory.items[i]);
 	    line++; // Advance on lines

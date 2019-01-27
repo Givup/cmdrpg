@@ -581,6 +581,7 @@ enum STBVorbisError
    #undef __forceinline
    #endif
    #define __forceinline
+   #undef alloca
    #define alloca __builtin_alloca
 #elif !defined(_MSC_VER)
    #if __GNUC__
