@@ -27,8 +27,9 @@ typedef struct {
   int id;
   int type;
   int price;
-  char* name; // Add this later
-  char* desc; // Add this later
+  char* name;
+  char* short_name;
+  char* desc;
   int metadata;
 } Item;
 

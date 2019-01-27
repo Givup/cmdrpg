@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
   };
 
   for(int i = 0;i < item_list.n_items;i++) {
-    inventory_add_items(&player_inventory, i, 2);
+    inventory_add_items(&player_inventory, i, 999);
   }
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -581,11 +581,14 @@ int main(int argc, char** argv) {
 	      | (i == player_inventory.equipped_items[EQUIP_SLOT_BODY])
 	      | (i == player_inventory.equipped_items[EQUIP_SLOT_LEGS]);
 
+	    const char* i_name = strlen(item_list.items[i].name) <= 20 ? item_list.items[i].name : item_list.items[i].short_name;
+
 	    // Print on the current line the item name + amount
-	    STAT_PRINT(line, "%s%s%s%s x %d", can_equip ? "[" : "",
+	    STAT_PRINT(line, "%s%s%s%s %*d", can_equip ? "[" : "    ",
 		       can_equip ? (equipped ? "x" : " ") : "",
 		       can_equip ? "] " : "",
-		       item_list.items[i].name,
+		       i_name,
+		       CSW - strlen(i_name) - 7,
 		       player_inventory.items[i]);
 	    line++; // Advance on lines
 	    if(line >= CSH - 2) break; // Don't render over the sheet
@@ -597,7 +600,7 @@ int main(int argc, char** argv) {
 	  if(x == 0) {
 	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  } else {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + CSW - 2, y, ALIGN_RIGHT);
+	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  }
 	}
       }

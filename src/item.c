@@ -8,7 +8,6 @@
 
 int get_item_type_from_str(const char* type_str) {
   // Maybe make a 'pair' of str <-> int, for easier checking
-
   if(strcmp("weapon", type_str) == 0) {
     return ITEM_TYPE_WEAPON;
   }
@@ -33,7 +32,6 @@ int get_item_type_from_str(const char* type_str) {
   if(strcmp("misc", type_str) == 0) {
     return ITEM_TYPE_MISC;
   }
-
   return ITEM_TYPE_UNDEF;
 };
 
@@ -104,7 +102,7 @@ int load_items(ItemList* list, const char* path) {
     Item item;
     item.id = i;
 
-    for(int j = 0;j < 5;j++) {
+    for(int j = 0; j < 6; j++) {
       fscanf(f, "%s", buffer);
 
       if(strcmp(buffer, "type") == 0) { // Type defined
@@ -142,6 +140,14 @@ int load_items(ItemList* list, const char* path) {
 	  return 1;
 	}
 	item.metadata = metadata;
+      } 
+      else if(strcmp(buffer, "short_name") == 0) {
+	fscanf(f, "%s", buffer);
+	int len = strlen(buffer);
+	if(len <= 0) return 1;
+	item.short_name = (char*)malloc(len + 1);
+	strreplace(buffer, '_', ' ');
+	strcpy(item.short_name, buffer);
       } else {
 	printf("Invalid item parameter: '%s\n", buffer);
 	return 1;
@@ -156,6 +162,7 @@ int free_items(ItemList* list) {
   for(int i = 0; i < list->n_items;i++) {
     free(list->items[i].name);
     free(list->items[i].desc);
+    free(list->items[i].short_name);
   }
   if(list->n_items > 0) free(list->items);
   list->n_items = 0;

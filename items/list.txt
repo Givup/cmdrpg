@@ -2,78 +2,91 @@
 
 type misc
 name Gold
+short_name Gold
 desc A_gold_piece_mostly_used_for_trading
 price 1
 metadata 0
 
 type weapon
 name Wooden_Sword
+short_name Wooden_Sword
 desc A_sword_made_of_wood
 price 10
 metadata 513
 
 type weapon
 name Iron_Sword
+short_name Iron_Sword
 desc A_sword_made_of_iron
 price 100
 metadata 1281
 
 type weapon
 name Fire_Sword
+short_name Fire_Sword
 desc A_flaming_sword
 price 1250
 metadata 3873
 
 type weapon
 name Ice_Mace
+short_name Ice_Mace
 desc A_freezing_sword
 price 1250
 metadata 3908
 
 type weapon
 name Shocking_Pike
+short_name Shocking_Pike
 desc Shocking
 price 1250
 metadata 3858
 
 type food
 name Bread
+short_name Bread
 desc A_loaf_of_bread
 price 2
 metadata 250
 
 type heal
-name Potion
+name Healing_Potion
+short_name Healing_Potion
 desc A_healing_potion
 price 250
 metadata 10
 
 type drink
 name Bottle_of_Water
+short_name Bottle_of_Water
 desc A_refreshing_bottle_of_water
 price 25
 metadata 250
 
 type armor_head
-name Leather_cap
+name Leather_Cap
+short_name Leather_Cap
 desc A_simple_cap_made_out_of_leather
 price 7
 metadata 321
 
 type armor_body
-name Leather_jacket
+name Leather_Jacket
+short_name Leather_Jacket
 desc A_simple_jacket_made_out_of_leather
 price 10
 metadata 833
 
 type armor_legs
-name Leather_boots
+name Leather_Boots
+short_name Leather_Boots
 desc Simple_boots_made_out_of_leather
 price 3
 metadata 577
 
 type armor_body
 name Iron_Platebody
+short_name Iron_Platebody
 desc A_plate_armor_made_of_iron
 price 100
 metadata 2083
