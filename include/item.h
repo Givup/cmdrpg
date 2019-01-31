@@ -27,10 +27,11 @@ typedef struct {
   int id;
   int type;
   int price;
+  int weight;
+  int metadata;
   char* name;
   char* short_name;
   char* desc;
-  int metadata;
 } Item;
 
 extern int is_item_equipable(int);
@@ -63,6 +64,8 @@ extern int inventory_unique_nth_count(Inventory*, int);
 
 extern int inventory_get_next_item(Inventory*, int);
 extern int inventory_get_previous_item(Inventory*, int);
+
+extern int inventory_get_weight(Inventory*, ItemList*);
 
 // Item usage
 extern int use_item_for_status(Item*, Status*);

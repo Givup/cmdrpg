@@ -102,12 +102,15 @@ int load_items(ItemList* list, const char* path) {
     Item item;
     item.id = i;
 
-    for(int j = 0; j < 6; j++) {
+    //printf("\nItem [%d]:\n", i);
+
+    for(int j = 0; j < 7; j++) {
       fscanf(f, "%s", buffer);
 
       if(strcmp(buffer, "type") == 0) { // Type defined
 	fscanf(f, "%s", buffer);
 	item.type = get_item_type_from_str(buffer);
+	//printf("\tType: %d\n", item.type);
       }
       else if(strcmp(buffer, "name") == 0) {
 	fscanf(f, "%s", buffer);
@@ -116,6 +119,7 @@ int load_items(ItemList* list, const char* path) {
 	item.name = (char*)malloc(len + 1);
 	strreplace(buffer, '_', ' ');
 	strcpy(item.name, buffer);
+	//printf("\tName: %s\n", item.name);
       }
       else if(strcmp(buffer, "desc") == 0) {
 	fscanf(f, "%s", buffer);
@@ -124,6 +128,7 @@ int load_items(ItemList* list, const char* path) {
 	item.desc = (char*)malloc(len + 1);
 	strreplace(buffer, '_', ' ');
 	strcpy(item.desc, buffer);
+	//printf("\tDescription: %s\n", item.desc);
       }
       else if(strcmp(buffer, "price") == 0) {
 	int price = 0;
@@ -132,6 +137,7 @@ int load_items(ItemList* list, const char* path) {
 	  return 1;
 	}
 	item.price = price;
+	//printf("\tPrice: %d\n", item.price);
       }
       else if(strcmp(buffer, "metadata") == 0) {
 	int metadata = 0;
@@ -140,6 +146,16 @@ int load_items(ItemList* list, const char* path) {
 	  return 1;
 	}
 	item.metadata = metadata;
+	//printf("\tMetadata: %d\n", item.metadata);
+      }
+      else if(strcmp(buffer, "weight") == 0) {
+	int weight = 0;
+	if(fscanf(f, "%d", &weight) == 0) {
+	  printf("Invalid metadata input! '%s'\n", buffer);
+	  return 1;
+	}
+	item.weight = weight;
+	//printf("\tWeight: %d\n", item.weight);
       } 
       else if(strcmp(buffer, "short_name") == 0) {
 	fscanf(f, "%s", buffer);
@@ -148,6 +164,7 @@ int load_items(ItemList* list, const char* path) {
 	item.short_name = (char*)malloc(len + 1);
 	strreplace(buffer, '_', ' ');
 	strcpy(item.short_name, buffer);
+	//printf("\tShort name: %s\n", item.short_name);
       } else {
 	printf("Invalid item parameter: '%s\n", buffer);
 	return 1;
@@ -270,6 +287,14 @@ int inventory_get_previous_item(Inventory* inventory, int current_id) {
     if(i < 0) i = inventory->n_items - 1;
     if(inventory->items[i] > 0) return i;
   }
+};
+
+int inventory_get_weight(Inventory* inventory, ItemList* item_list) {
+  int w = 0;
+  for(int i = 0;i < inventory->n_items;i++) {
+    w += item_list->items[i].weight * inventory->items[i];
+  }
+  return w;
 };
 
 int use_item_for_status(Item* item, Status* status) {

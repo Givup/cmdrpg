@@ -13,6 +13,7 @@
 #include "status.h"
 #include "item.h"
 #include "equipment.h"
+#include "entity.h"
 
 #define AUDIO_DISABLE 1
 
@@ -76,7 +77,7 @@ int main(int argc, char** argv) {
   };
 
   for(int i = 0;i < item_list.n_items;i++) {
-    inventory_add_items(&player_inventory, i, 999);
+    inventory_add_items(&player_inventory, i, 1);
   }
 
   load_permutation("perlin_seed"); // Perlin noise seed
@@ -162,7 +163,7 @@ int main(int argc, char** argv) {
 
   // Input flags so they only trigger once when pressed
   int space_last = 0, c_last = 0, i_last = 0;
-  int up_last = 0, down_last = 0, right_last = 0;
+  int up_last = 0, down_last = 0, right_last = 0, left_last = 0;
 
   // How much player moved this frame
   int d_x = 0, d_y = 0;
@@ -187,7 +188,7 @@ int main(int argc, char** argv) {
 #if AUDIO_DISABLE == 0
     // If there is a free audio buffer available
     if(output_device.buffers_available > 0) {
-      // Prepare mixer to receive data (clear last packet data)
+       // Prepare mixer to receive data (clear last packet data)
       prepare_mixer(&mixer);
       // Should the hurt audio play (This should be later moved into its' own struct)
       if(play_hurt) {
@@ -248,37 +249,54 @@ int main(int argc, char** argv) {
       show_inventory = 0;
     } c_last = GetKeyState(0x43) & 0x8000;
 
-    // Inventory item selection up
+    // ARROW KEYS
     if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
+      // Inventory item selection up
       if(show_inventory) {
 	int prev = inventory_get_previous_item(&player_inventory, selected_item);
 	if(prev != -1) {
 	  selected_item = prev;
-	  should_render = 1;
 	}
+      } else if(mode == MODE_BIOME) { // Interact with map (UP of player)
+	interact_with_entity(&map, px, py - 1, &player_inventory, &item_list, &status);
       }
+      should_render = 1;
     } up_last = GetKeyState(VK_UP) & 0x8000;
 
-    // Inventory item selection down
     if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
+      // Inventory item selection down
       if(show_inventory) {
 	int next = inventory_get_next_item(&player_inventory, selected_item);
 	if(next != -1) {
 	  selected_item = next;
-	  should_render = 1;
 	}
+      } else if(mode == MODE_BIOME) { // Interact with map (DOWN of player)
+	interact_with_entity(&map, px, py + 1, &player_inventory, &item_list, &status);
       }
+      should_render = 1;
     } down_last = GetKeyState(VK_DOWN) & 0x8000;
 
-    // Pressing right (Using items)
+    if(GetKeyState(VK_LEFT) & 0x8000 && left_last == 0) {
+      if(show_inventory) {
+      } else if(mode == MODE_BIOME) { // Interact with map (LEFT of player)
+		interact_with_entity(&map, px - 1, py, &player_inventory, &item_list, &status);
+      }
+      should_render = 1;
+    } left_last = GetKeyState(VK_LEFT) & 0x8000;
+
     if(GetKeyState(VK_RIGHT) & 0x8000 && right_last == 0) {
-      Item item = item_list.items[selected_item];
-      if(use_item_for_status(&item, &status)) {
-	if(inventory_take_items(&player_inventory, selected_item, 1) == 0) {
-	  selected_item = inventory_get_next_item(&player_inventory, selected_item);
-	}
-      } else if(use_item_for_equipment(&item, &player_inventory)) {
+      if(show_inventory) {
+	// Pressing right (Using items)
+	Item item = item_list.items[selected_item];
+	if(use_item_for_status(&item, &status)) {
+	  if(inventory_take_items(&player_inventory, selected_item, 1) == 0) {
+	    selected_item = inventory_get_next_item(&player_inventory, selected_item);
+	  }
+	} else if(use_item_for_equipment(&item, &player_inventory)) {
 	
+	}
+      } else if(mode == MODE_BIOME) { // Interact with map (RIGHT of player)
+	interact_with_entity(&map, px + 1, py, &player_inventory, &item_list, &status);
       }
       should_render = 1;
     } right_last = GetKeyState(VK_RIGHT) & 0x8000;
@@ -461,20 +479,28 @@ int main(int argc, char** argv) {
 	char stat_buffer[(CSW + 1) * CSH];
 	memset(stat_buffer, 0, (CSW + 1) * CSH);
 
+	int line = 2;
+
 	print_string(&screen, "STATUS", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
-	STAT_PRINT(2, "Health: %d / %d", status.hp, status.max_hp);
-	STAT_PRINT(3, "Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
-	STAT_PRINT(4, "Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
+	STAT_PRINT(line++, "Health: %d / %d", status.hp, status.max_hp);
+	STAT_PRINT(line++, "Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
+	STAT_PRINT(line++, "Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
+
+	int weight = inventory_get_weight(&player_inventory, &item_list);
+
+	STAT_PRINT(line++, "Weight: %d.%d kg", weight / 1000, (weight % 1000) / 10);
+
+	line++;
 
 	int wpn = player_inventory.equipped_items[EQUIP_SLOT_WEAPON];
 	int head = player_inventory.equipped_items[EQUIP_SLOT_HEAD];
 	int body = player_inventory.equipped_items[EQUIP_SLOT_BODY];
 	int legs = player_inventory.equipped_items[EQUIP_SLOT_LEGS];
 
-	STAT_PRINT(6, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "Fists");
-	STAT_PRINT(7, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
-	STAT_PRINT(8, "BODY: %s", body != -1 ? item_list.items[body].name : "None");
-	STAT_PRINT(9, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
+	STAT_PRINT(line++, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "Fists");
+	STAT_PRINT(line++, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
+	STAT_PRINT(line++, "BODY: %s", body != -1 ? item_list.items[body].name : "None");
+	STAT_PRINT(line++, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
 
 	if(wpn != -1) {
 	  int w_meta = item_list.items[wpn].metadata;
