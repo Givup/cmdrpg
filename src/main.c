@@ -76,9 +76,8 @@ int main(int argc, char** argv) {
     return 1;
   };
 
-  for(int i = 0;i < item_list.n_items;i++) {
-    inventory_add_items(&player_inventory, i, 1);
-  }
+  inventory_add_items(&player_inventory, get_item_by_name(&item_list, "Iron Sword"), 1);
+  inventory_add_items(&player_inventory, get_item_by_name(&item_list, "Fire Sword"), 1);
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -374,6 +373,8 @@ int main(int argc, char** argv) {
     if(should_render | should_tick) {
 
       if(should_tick) {
+	reset_entities(&map);
+	update_entities(&map);
 	apply_status(env_status, &status); // Apply environment status to player
 
 	if(mode == MODE_WORLD) {

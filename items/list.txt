@@ -1,4 +1,4 @@
-15
+17
 
 type misc
 name Gold
@@ -63,6 +63,22 @@ desc A_loaf_of_bread
 price 2
 weight 200
 metadata 250
+
+type food
+name Raw_Meat
+short_name R.Meat
+desc A_chunk_of_raw_meat
+price 50
+weight 1000
+metadata 150
+
+type food
+name Cooked_Meat
+short_name C.Meat
+desc A_chunk_of_delicious_meat
+price 500
+weight 900
+metadata 500
 
 type heal
 name Healing_Potion

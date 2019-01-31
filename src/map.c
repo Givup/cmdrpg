@@ -53,6 +53,7 @@ const char* get_entity_str(int entity, int metadata) {
   case ENTITY_CACTUS: return "f";
   case ENTITY_SCRUB: return "*";
   case ENTITY_WALKED_SNOW: return "\260";
+  case ENTITY_COW: return "M";
 
   case ENTITY_HOUSE:
     {
@@ -83,6 +84,7 @@ WORD get_entity_attributes(int entity) {
   case ENTITY_FLOOR: return FG_BLACK;
   case ENTITY_DOOR: return FG_RED;
   case ENTITY_MONEY: return FG_LIGHT_GREEN;
+  case ENTITY_COW: return FG_BLACK;
   default: return FG_MAGENTA | BG_MAGENTA;
   }
 };
@@ -210,10 +212,10 @@ void create_map(Map* map, int w, int h) {
   }
   map->pool_count = TILE_COUNT;
   
-  int forest_pool[] = { ENTITY_HOUSE, 5 };
+  int forest_pool[] = { ENTITY_COW, 5 };
   create_biome_pool(map, TILE_GRASS, forest_pool, sizeof(forest_pool) / sizeof(int) / 2);
 
-  int sand_pool[] = { ENTITY_CACTUS, 100, ENTITY_SCRUB, 100, ENTITY_HOUSE, 5 };
+  int sand_pool[] = { ENTITY_CACTUS, 100, ENTITY_SCRUB, 100, ENTITY_HOUSE, 5, ENTITY_COW, 10 };
   create_biome_pool(map, TILE_SAND, sand_pool, sizeof(sand_pool) / sizeof(int) / 2);
 };
 
@@ -290,6 +292,64 @@ void set_entity(Map* map, int x, int y, int entity_id, int metadata) {
 MapEntity* get_entity(Map* map, int x, int y) {
   if(x < 0 || x >= map->width || y < 0 || y >= map->height) return NULL;
   return &map->entities[x + y * map->width];
+};
+
+void clear_entities(Map* map) {
+  memset(map->entities, 0, sizeof(MapEntity) * map->width * map->height);
+};
+
+void update_entity(MapEntity* entity, Map* map, int cx, int cy) {
+  switch(entity->tile) {
+  case ENTITY_COW:
+    {
+      if(randomi(1000) > 750 && entity->metadata == 0) {
+	int x_off = (int)(randomi_range(1, 4)) - 2;
+	int y_off = (int)(randomi_range(1, 4)) - 2;
+
+	if(!can_move_to(map, (cx + x_off + map->width) % map->width, cy % map->height)) {
+	  x_off = 0;
+	}
+	if(!can_move_to(map, cx % map->width, (cy + y_off + map->height) % map->height)) {
+	  y_off = 0;
+	}
+
+	int nx = (cx + x_off + map->width) % map->width;
+	int ny = (cy + y_off + map->height) % map->height;
+	
+	if(x_off != 0 || y_off != 0) {
+	  set_entity(map, nx, ny, entity->tile, entity->metadata++);
+	  set_entity(map, cx, cy, ENTITY_UNDEF, 0);
+	}
+      }
+    }
+    break;
+  }
+};
+
+void update_entities(Map* map) {
+  for(int e = 0; e < map->width * map->height;e++) {
+    if(map->entities[e].tile != ENTITY_UNDEF) {
+      update_entity(&map->entities[e], map, e % map->width, e / map->width);
+    }
+  }
+};
+
+void reset_entity(MapEntity* entity, Map* map, int cx, int cy) {
+  switch(entity->tile) {
+  case ENTITY_COW:
+    {
+      entity->metadata = 0;
+      break;
+    }
+  }
+};
+
+void reset_entities(Map* map) {
+  for(int e = 0; e < map->width * map->height;e++) {
+    if(map->entities[e].tile != ENTITY_UNDEF) {
+      reset_entity(&map->entities[e], map, e % map->width, e / map->width);
+    }
+  }
 };
 
 void generate_map(Map* map, int x, int y, int w, int h) {
@@ -386,6 +446,7 @@ int can_move_to(Map* map, int x, int y) {
   int entity = map->entities[x + y * map->width].tile;
   switch(entity) {
     
+  case ENTITY_COW:
   case ENTITY_SCRUB:
   case ENTITY_CACTUS:
   case ENTITY_HOUSE: return 0;
@@ -404,8 +465,4 @@ void try_move_to(Map* map, int x, int y, Status* status) {
   if(tile == TILE_WATER) {
     status->wet |= 1;
   }
-};
-
-void clear_entities(Map* map) {
-  memset(map->entities, 0, sizeof(MapEntity) * map->width * map->height);
 };

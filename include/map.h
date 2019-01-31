@@ -23,6 +23,7 @@
 #define ENTITY_DOOR        5
 #define ENTITY_FLOOR       6
 #define ENTITY_MONEY       7
+#define ENTITY_COW         8
 
 typedef struct {
   int pool_size;
@@ -61,13 +62,14 @@ extern int get_tile_traverse_penalty(Map*, int);
 
 extern void set_entity(Map*, int, int, int, int);
 extern MapEntity* get_entity(Map*, int, int);
+extern void update_entities(Map*);
+extern void reset_entities(Map*);
+extern void clear_entities(Map*);
 
 extern void generate_map(Map*, int, int, int, int);
 extern int  generate_biome_at(Map*, int, int);
 
 extern int can_move_to(Map*, int, int);
 extern void try_move_to(Map*, int, int, Status*);
-
-extern void clear_entities(Map*);
 
 #endif

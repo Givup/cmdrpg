@@ -22,4 +22,19 @@ Some ideas for the project
 		
 - 'Living' entities (friendly and hostile)						[ ]
 	- Cows														[ ]
-
+	- NPCs
+		- Just dummy ones at start, maybe add some logic later
+	
+- Idea of a 'tick'
+	- Some actions take more than others
+		- Walking 1, slower walking more(?)
+		- Healing (not using potions) takes more
+	
+	
+	
+	
+	
+	
+	
+	
+	
