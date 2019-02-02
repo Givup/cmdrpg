@@ -30,7 +30,11 @@ Some ideas for the project
 		- Walking 1, slower walking more(?)
 		- Healing (not using potions) takes more
 	
-	
+- Menu/UI System
+		- Dialogue system
+		- Panel
+		- Option
+		
 	
 	
 	

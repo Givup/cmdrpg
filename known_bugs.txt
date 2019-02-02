@@ -12,3 +12,6 @@ When listing inventory, sometimes the scrolling and selection
 @Equipment
 Equipment can deal/protect from two different types that are
 	of same category (physical/magical)
+	
+@Rendering
+Resizing the window pretty much just fucks up the whole thing

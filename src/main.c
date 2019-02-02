@@ -9,6 +9,7 @@
 #include "perlin.h"
 #include "audio.h"
 #include "screen.h"
+#include "ui.h"
 #include "map.h"
 #include "status.h"
 #include "item.h"
@@ -145,6 +146,13 @@ int main(int argc, char** argv) {
   // Player status
   Status status = { 0 };
   init_status(&status, 25, 2500, 2500);
+
+  UISystem ui_system;
+  create_ui(&ui_system, &screen);
+
+  UIPanel ui_panel;
+  create_ui_panel(&ui_panel, 0, 0, 10, 5, 0, FG_WHITE);
+  set_margin_ui_panel(&ui_panel, 1, 1);
 
   // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
