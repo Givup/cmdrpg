@@ -15,6 +15,7 @@ int create_ui_panel(UIPanel* panel, int x, int y, int w, int h, WORD clear, WORD
   panel->margin_vertical = 0;
   panel->attributes_clear = clear;
   panel->attributes_render = render;
+  panel->text_callback = NULL;
   return 0;
 };
 
@@ -24,7 +25,17 @@ int set_margin_ui_panel(UIPanel* panel, int margin_h, int margin_v) {
   return 0;
 };
 
+int set_ui_panel_callback(UIPanel* panel, void* data, const char**(*callback)(void*, void*)) {
+  panel->user_data = data;
+  panel->text_callback = callback;
+  return 0;
+};
+
 int render_ui_panel(UISystem* system, UIPanel* panel, const char** text) {
+  if(panel->text_callback != NULL) {
+    text = panel->text_callback(system, panel->user_data);
+  }
+
   int text_index = -panel->margin_vertical;
   char* buffer = (char*)malloc(panel->w + 1);
 

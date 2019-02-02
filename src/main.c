@@ -18,6 +18,12 @@
 
 #define AUDIO_DISABLE 1
 
+typedef struct {
+  int x, y;
+  Status status;
+  Inventory inventory;
+} Player;
+
 // Macros
 // Character screen status print
 #define STAT_PRINT(y, format, ...) snprintf(stat_buffer + (y) * (CSW + 1), CSW, format, __VA_ARGS__);
@@ -33,6 +39,110 @@
 // Character sheet width and height
 #define CSW 30
 #define CSH (SH - 2)
+
+#define CALLBACK_PRINT(buffer_a, y, format, ...) snprintf(buffer_a[y], CSW, format, __VA_ARGS__)
+
+
+const char** status_screen_callback(void* system, void* data) {
+
+  char** lines = malloc(sizeof(char*) * CSH);
+  for(int i = 0;i < CSH;i++) {
+    *(lines + i) = malloc(sizeof(char) * CSW + 1);
+    memset(*(lines + i), 0, CSW);
+  }
+  
+  Player player = *(Player*)data;
+  ItemList item_list = *player.inventory.list;
+
+  int line = 2;
+
+  CALLBACK_PRINT(lines, 0, "STATUS", 0);
+
+
+  CALLBACK_PRINT(lines, line++, "Health: %d / %d", player.status.hp, player.status.max_hp);
+  CALLBACK_PRINT(lines, line++, "Hunger: %d / %d", player.status.hunger / 25, player.status.max_hunger / 25);
+  CALLBACK_PRINT(lines, line++, "Thirst: %d / %d", player.status.thirst / 25, player.status.max_thirst / 25);
+
+  int weight = inventory_get_weight(&player.inventory, &item_list);
+
+  CALLBACK_PRINT(lines, line++, "Weight: %d.%d kg", weight / 1000, (weight % 1000) / 10);
+
+  line++;
+
+  int wpn = player.inventory.equipped_items[EQUIP_SLOT_WEAPON];
+  int head = player.inventory.equipped_items[EQUIP_SLOT_HEAD];
+  int body = player.inventory.equipped_items[EQUIP_SLOT_BODY];
+  int legs = player.inventory.equipped_items[EQUIP_SLOT_LEGS];
+
+  CALLBACK_PRINT(lines, line++, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "Fists");
+  CALLBACK_PRINT(lines, line++, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
+  CALLBACK_PRINT(lines, line++, "BODY: %s", body != -1 ? item_list.items[body].name : "None");
+  CALLBACK_PRINT(lines, line++, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
+
+  if(wpn != -1) {
+    int w_meta = item_list.items[wpn].metadata;
+
+    int dmg_type_physical = w_meta & 0x0F;
+    int dmg_type_magical = w_meta & 0xF0;
+
+    CALLBACK_PRINT(lines, 11, "DMG: %d", get_value_from_metadata(w_meta));
+    CALLBACK_PRINT(lines, 12, "%s %s",
+	       dmg_type_magical ? get_damage_type_str(dmg_type_magical) : "", 
+	       dmg_type_physical ? get_damage_type_str(dmg_type_physical) :"");
+  } else {
+    CALLBACK_PRINT(lines, 11, "Offensive", 0);
+    CALLBACK_PRINT(lines, 12, "DMG: 1", 0);
+    CALLBACK_PRINT(lines, 13, "%s", get_damage_type_str(DAMAGE_TYPE_BLUNT));
+  }
+
+  {
+    int h_meta = head != -1 ? item_list.items[head].metadata : 0;
+    int b_meta = body != -1 ? item_list.items[body].metadata : 0;
+    int l_meta = legs != -1 ? item_list.items[legs].metadata : 0;
+
+    int slash_armor = 0;
+    int thrust_armor = 0;
+    int blunt_armor = 0;
+
+    int shock_armor = 0;
+    int fire_armor = 0;
+    int ice_armor = 0;
+
+    slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, h_meta);
+    slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, b_meta);
+    slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, l_meta);
+	  
+    thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, h_meta);
+    thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, b_meta);
+    thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, l_meta);
+	  
+    blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, h_meta);
+    blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, b_meta);
+    blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, l_meta);
+
+    shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, h_meta);
+    shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, b_meta);
+    shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, l_meta);
+
+    fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, h_meta);
+    fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, b_meta);
+    fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, l_meta);
+
+    ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, h_meta);
+    ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, b_meta);
+    ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, l_meta);
+
+    CALLBACK_PRINT(lines, 15, "Defensive", 0);
+    CALLBACK_PRINT(lines, 16, "Slash: %d", slash_armor);
+    CALLBACK_PRINT(lines, 17, "Thrust: %d", thrust_armor);
+    CALLBACK_PRINT(lines, 18, "Blunt: %d", blunt_armor);
+    CALLBACK_PRINT(lines, 19, "Shock: %d", shock_armor);
+    CALLBACK_PRINT(lines, 20, "Fire: %d", fire_armor);
+    CALLBACK_PRINT(lines, 21, "Ice: %d", ice_armor);
+  }
+
+  return (const char**)lines;
+};
 
 // sinewave
 // Generates a sinewave tone with frequency and amplitude
@@ -64,21 +174,17 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
 };
 
 int main(int argc, char** argv) {
-
   ItemList item_list;
   if(load_items(&item_list, "items/list.txt")) {
     printf("Failed to load item list!\n");
     return 1;
   }
 
-  Inventory player_inventory;
-  if(create_inventory(&player_inventory, item_list.n_items)) {
-    printf("Failed to create inventory.\n");
-    return 1;
-  };
+  Player player;
+  create_inventory(&player.inventory, &item_list);
 
-  inventory_add_items(&player_inventory, get_item_by_name(&item_list, "Iron Sword"), 1);
-  inventory_add_items(&player_inventory, get_item_by_name(&item_list, "Fire Sword"), 1);
+  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Iron Sword"), 1);
+  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Fire Sword"), 1);
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -144,15 +250,15 @@ int main(int argc, char** argv) {
   int px = 0, py = 0; // Player coordinates
 
   // Player status
-  Status status = { 0 };
-  init_status(&status, 25, 2500, 2500);
+  init_status(&player.status, 25, 2500, 2500);
 
   UISystem ui_system;
   create_ui(&ui_system, &screen);
 
-  UIPanel ui_panel;
-  create_ui_panel(&ui_panel, 0, 0, 10, 5, 0, FG_WHITE);
-  set_margin_ui_panel(&ui_panel, 1, 1);
+  UIPanel status_panel;
+  create_ui_panel(&status_panel, 0, 0, CSW, CSH, BG_BLACK, FG_WHITE);
+  set_margin_ui_panel(&status_panel, 2, 0);
+  set_ui_panel_callback(&status_panel, (void*)&player, status_screen_callback);
 
   // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
@@ -165,7 +271,7 @@ int main(int argc, char** argv) {
   int show_character_sheet = 0;
   int show_inventory = 0;
   int inventory_scroll = 0;
-  int selected_item = inventory_get_next_item(&player_inventory, -1);
+  int selected_item = inventory_get_next_item(&player.inventory, -1);
   int mode = MODE_WORLD;
 
   // Input flags so they only trigger once when pressed
@@ -224,7 +330,7 @@ int main(int argc, char** argv) {
     // If the window is not focused, don't bother updating
     if(window_handle != GetForegroundWindow()) continue;
     // If the player has died
-    if(status.hp <= 0) {
+    if(player.status.hp <= 0) {
       print_string(&screen, "YOU DIED", FG_WHITE | BG_BLACK, SW / 2, SH / 2, ALIGN_CENTER);
       print_string(&screen, "Press escape to exit.", FG_WHITE | BG_BLACK, SW / 2, SH / 2 + 1, ALIGN_CENTER);
       print_console(&screen);
@@ -260,12 +366,12 @@ int main(int argc, char** argv) {
     if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
       // Inventory item selection up
       if(show_inventory) {
-	int prev = inventory_get_previous_item(&player_inventory, selected_item);
+	int prev = inventory_get_previous_item(&player.inventory, selected_item);
 	if(prev != -1) {
 	  selected_item = prev;
 	}
       } else if(mode == MODE_BIOME) { // Interact with map (UP of player)
-	interact_with_entity(&map, px, py - 1, &player_inventory, &item_list, &status);
+	interact_with_entity(&map, px, py - 1, &player.inventory, &item_list, &player.status);
       }
       should_render = 1;
     } up_last = GetKeyState(VK_UP) & 0x8000;
@@ -273,12 +379,12 @@ int main(int argc, char** argv) {
     if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
       // Inventory item selection down
       if(show_inventory) {
-	int next = inventory_get_next_item(&player_inventory, selected_item);
+	int next = inventory_get_next_item(&player.inventory, selected_item);
 	if(next != -1) {
 	  selected_item = next;
 	}
       } else if(mode == MODE_BIOME) { // Interact with map (DOWN of player)
-	interact_with_entity(&map, px, py + 1, &player_inventory, &item_list, &status);
+	interact_with_entity(&map, px, py + 1, &player.inventory, &item_list, &player.status);
       }
       should_render = 1;
     } down_last = GetKeyState(VK_DOWN) & 0x8000;
@@ -286,7 +392,7 @@ int main(int argc, char** argv) {
     if(GetKeyState(VK_LEFT) & 0x8000 && left_last == 0) {
       if(show_inventory) {
       } else if(mode == MODE_BIOME) { // Interact with map (LEFT of player)
-		interact_with_entity(&map, px - 1, py, &player_inventory, &item_list, &status);
+		interact_with_entity(&map, px - 1, py, &player.inventory, &item_list, &player.status);
       }
       should_render = 1;
     } left_last = GetKeyState(VK_LEFT) & 0x8000;
@@ -295,15 +401,15 @@ int main(int argc, char** argv) {
       if(show_inventory) {
 	// Pressing right (Using items)
 	Item item = item_list.items[selected_item];
-	if(use_item_for_status(&item, &status)) {
-	  if(inventory_take_items(&player_inventory, selected_item, 1) == 0) {
-	    selected_item = inventory_get_next_item(&player_inventory, selected_item);
+	if(use_item_for_status(&item, &player.status)) {
+	  if(inventory_take_items(&player.inventory, selected_item, 1) == 0) {
+	    selected_item = inventory_get_next_item(&player.inventory, selected_item);
 	  }
-	} else if(use_item_for_equipment(&item, &player_inventory)) {
+	} else if(use_item_for_equipment(&item, &player.inventory)) {
 	
 	}
       } else if(mode == MODE_BIOME) { // Interact with map (RIGHT of player)
-	interact_with_entity(&map, px + 1, py, &player_inventory, &item_list, &status);
+	interact_with_entity(&map, px + 1, py, &player.inventory, &item_list, &player.status);
       }
       should_render = 1;
     } right_last = GetKeyState(VK_RIGHT) & 0x8000;
@@ -368,7 +474,7 @@ int main(int argc, char** argv) {
 
 	MapEntity* entity = get_entity(&map, px, py);
 	if(entity->tile == ENTITY_MONEY) {
-	  inventory_add_items(&player_inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
+	  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
 	  set_entity(&map, px, py, ENTITY_UNDEF, 0);
 	}
 
@@ -383,20 +489,20 @@ int main(int argc, char** argv) {
       if(should_tick) {
 	reset_entities(&map);
 	update_entities(&map);
-	apply_status(env_status, &status); // Apply environment status to player
+	apply_status(env_status, &player.status); // Apply environment status to player
 
 	if(mode == MODE_WORLD) {
 	  int wetness = get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 5 : 0;
 	  if(wetness > 0) {
-	    status.wet += wetness;
+	    player.status.wet += wetness;
 	  } else {
-	    if(status.temp > 0) {
-	      if(status.wet > 0) status.wet -= 1;
+	    if(player.status.temp > 0) {
+	      if(player.status.wet > 0) player.status.wet -= 1;
 	    }
 	  }
 	}
 
-	if(tick_status(&status)) { // If player took damage
+	if(tick_status(&player.status)) { // If player took damage
 	  play_hurt = 1;
 	}
 
@@ -439,7 +545,7 @@ int main(int argc, char** argv) {
       print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
 
       // Print current health for faster seeing than character sheet
-      snprintf(line_buffer, SW, "HP: %d/%d", status.hp, status.max_hp);
+      snprintf(line_buffer, SW, "HP: %d/%d", player.status.hp, player.status.max_hp);
       print_string(&screen, line_buffer, FG_LIGHT_RED, SW, SH - 2, ALIGN_RIGHT);
 
       // Print all the status effects, colored
@@ -451,28 +557,29 @@ int main(int argc, char** argv) {
 
       printed += print_string(&screen, "Status: [", FG_WHITE, 0, SH - 1, ALIGN_LEFT);
 
-      STATUS_LINE_PRINT(status.wet > 0 ? FG_TURQUOISE : FG_YELLOW, SH - 1, "%s", status.wet > 0 ? "Wet" : "Dry");
+      STATUS_LINE_PRINT(player.status.wet > 0 ? FG_TURQUOISE : FG_YELLOW, SH - 1, "%s", player.status.wet > 0 ? "Wet" : "Dry");
 
-      if(status.hypothermia <= 0 && status.heat_stroke <= 0) {
-	STATUS_LINE_PRINT(status.temp > 30 ? FG_RED : status.temp < 0 ? FG_CYAN : FG_WHITE, SH - 1, "%s", status.temp < 0 ? " Cold" : status.temp > 30 ? " Hot" : "");
-      } else if(status.hypothermia > 0) {
+      if(player.status.hypothermia <= 0 && player.status.heat_stroke <= 0) {
+	STATUS_LINE_PRINT(player.status.temp > 30 ? FG_RED : player.status.temp < 0 ? FG_CYAN : FG_WHITE, SH - 1, "%s", player.status.temp < 0 ? " Cold" : player.status.temp > 30 ? " Hot" : "");
+      } else if(player.status.hypothermia > 0) {
 	STATUS_LINE_PRINT(FG_CYAN, SH - 1, " Hypothermia", 0);
-      } else if(status.heat_stroke > 0) {
+      } else if(player.status.heat_stroke > 0) {
 	STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, " Heat Stroke", 0);
       }
 
-      STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, "%s", status.bleeding > 10 ? " Profusely Bleeding" : status.bleeding > 0 ? " Bleeding" : "");
+      STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, "%s", player.status.bleeding > 10 ? " Profusely Bleeding" : player.status.bleeding > 0 ? " Bleeding" : "");
 
-      STATUS_LINE_PRINT(FG_RED, SH - 1, "%s", status.infected > 0 ? " Infected" : "");
+      STATUS_LINE_PRINT(FG_RED, SH - 1, "%s", player.status.infected > 0 ? " Infected" : "");
 
       print_string(&screen, "]", FG_WHITE, printed, SH - 1, ALIGN_LEFT);
 
       // Temperature
-      snprintf(line_buffer, SW, "Temp: %d*C", status.temp);
-      print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
+      snprintf(line_buffer, SW, "Temp: %d*C", player.status.temp);
+      print_string(&screen, line_buffer, get_temp_attributes(player.status.temp), SW, SH - 1, ALIGN_RIGHT);
 
       // Character sheet
       if(show_character_sheet) {
+	/*
 	int x = 0;
 	if(px < SW / 2 + 1) {
 	  x = SW - CSW;
@@ -491,20 +598,20 @@ int main(int argc, char** argv) {
 	int line = 2;
 
 	print_string(&screen, "STATUS", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
-	STAT_PRINT(line++, "Health: %d / %d", status.hp, status.max_hp);
-	STAT_PRINT(line++, "Hunger: %d / %d", status.hunger / 25, status.max_hunger / 25);
-	STAT_PRINT(line++, "Thirst: %d / %d", status.thirst / 25, status.max_thirst / 25);
+	STAT_PRINT(line++, "Health: %d / %d", player.status.hp, player.status.max_hp);
+	STAT_PRINT(line++, "Hunger: %d / %d", player.status.hunger / 25, player.status.max_hunger / 25);
+	STAT_PRINT(line++, "Thirst: %d / %d", player.status.thirst / 25, player.status.max_thirst / 25);
 
-	int weight = inventory_get_weight(&player_inventory, &item_list);
+	int weight = inventory_get_weight(&player.inventory, &item_list);
 
 	STAT_PRINT(line++, "Weight: %d.%d kg", weight / 1000, (weight % 1000) / 10);
 
 	line++;
 
-	int wpn = player_inventory.equipped_items[EQUIP_SLOT_WEAPON];
-	int head = player_inventory.equipped_items[EQUIP_SLOT_HEAD];
-	int body = player_inventory.equipped_items[EQUIP_SLOT_BODY];
-	int legs = player_inventory.equipped_items[EQUIP_SLOT_LEGS];
+	int wpn = player.inventory.equipped_items[EQUIP_SLOT_WEAPON];
+	int head = player.inventory.equipped_items[EQUIP_SLOT_HEAD];
+	int body = player.inventory.equipped_items[EQUIP_SLOT_BODY];
+	int legs = player.inventory.equipped_items[EQUIP_SLOT_LEGS];
 
 	STAT_PRINT(line++, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "Fists");
 	STAT_PRINT(line++, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
@@ -581,6 +688,8 @@ int main(int argc, char** argv) {
 	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + CSW - 2, y, ALIGN_RIGHT);
 	  }
 	}
+	*/
+	render_ui_panel(&ui_system, &status_panel, NULL);
       }
 
       // Inventory
@@ -606,15 +715,15 @@ int main(int argc, char** argv) {
 	print_string(&screen, "INVENTORY", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
 
 	int line = 2; // Current line we are printing to 
-	for(int i = inventory_scroll; i < player_inventory.n_items; i++) { // For each item available
-	  if(player_inventory.items[i] > 0) { // If the player has any
+	for(int i = inventory_scroll; i < item_list.n_items; i++) { // For each item available
+	  if(player.inventory.items[i] > 0) { // If the player has any
 
 	    int can_equip = is_item_equipable(item_list.items[i].type);
 
-	    int equipped = (i == player_inventory.equipped_items[EQUIP_SLOT_WEAPON])
-	      | (i == player_inventory.equipped_items[EQUIP_SLOT_HEAD])
-	      | (i == player_inventory.equipped_items[EQUIP_SLOT_BODY])
-	      | (i == player_inventory.equipped_items[EQUIP_SLOT_LEGS]);
+	    int equipped = (i == player.inventory.equipped_items[EQUIP_SLOT_WEAPON])
+	      | (i == player.inventory.equipped_items[EQUIP_SLOT_HEAD])
+	      | (i == player.inventory.equipped_items[EQUIP_SLOT_BODY])
+	      | (i == player.inventory.equipped_items[EQUIP_SLOT_LEGS]);
 
 	    const char* i_name = strlen(item_list.items[i].name) <= 20 ? item_list.items[i].name : item_list.items[i].short_name;
 
@@ -624,14 +733,14 @@ int main(int argc, char** argv) {
 		       can_equip ? "] " : "",
 		       i_name,
 		       CSW - strlen(i_name) - 7,
-		       player_inventory.items[i]);
+		       player.inventory.items[i]);
 	    line++; // Advance on lines
 	    if(line >= CSH - 2) break; // Don't render over the sheet
 	  }
 	}
 	
 	for(int y = 0;y < CSH;y++) {
-	  int color = inventory_unique_nth_count(&player_inventory, selected_item) - inventory_scroll == y - 2 ? FG_LIGHT_RED : FG_WHITE;
+	  int color = inventory_unique_nth_count(&player.inventory, selected_item) - inventory_scroll == y - 2 ? FG_LIGHT_RED : FG_WHITE;
 	  if(x == 0) {
 	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  } else {
@@ -639,6 +748,8 @@ int main(int argc, char** argv) {
 	  }
 	}
       }
+
+      //render_ui_panel(&ui_system, &status_panel, NULL);
 
       print_console(&screen);
 
@@ -657,7 +768,7 @@ int main(int argc, char** argv) {
   free_output_device(&output_device);
 #endif
 
-  free_inventory(&player_inventory);
+  free_inventory(&player.inventory);
   free_items(&item_list);
 
   return 0;

@@ -9,6 +9,8 @@ typedef struct {
   int margin_vertical;
   WORD attributes_clear;
   WORD attributes_render;
+  void* user_data;
+  const char** (*text_callback)(void*, void*);
 } UIPanel;
 
 typedef struct {
@@ -19,6 +21,7 @@ extern int create_ui(UISystem*, Screen*);
 
 extern int create_ui_panel(UIPanel*, int, int, int, int, WORD, WORD);
 extern int set_margin_ui_panel(UIPanel*, int, int);
+extern int set_ui_panel_callback(UIPanel*, void*, const char**(*callbackNULL)(void*, void*));
 
 extern int render_ui_panel(UISystem*, UIPanel*, const char**);
 

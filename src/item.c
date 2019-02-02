@@ -198,13 +198,13 @@ int get_item_by_name(ItemList* list, const char* name) {
   INVENTORY
  */
 
-int create_inventory(Inventory* inventory, int item_count) {
-  inventory->items = (int*)malloc(sizeof(int) * item_count);
-  inventory->n_items = item_count;
+int create_inventory(Inventory* inventory, ItemList* list) {
+  inventory->items = (int*)malloc(sizeof(int) * list->n_items);
+  inventory->list = list;
   if(inventory->items == NULL) {
     return 1;
   }
-  memset(inventory->items, 0, sizeof(int) * item_count);
+  memset(inventory->items, 0, sizeof(int) * list->n_items);
 
   // Clear equipped items
   for(int e = 0; e < sizeof(inventory->equipped_items) / sizeof(int); e++) {
@@ -214,7 +214,7 @@ int create_inventory(Inventory* inventory, int item_count) {
 };
 
 int free_inventory(Inventory* inventory) {
-  if(inventory->n_items > 0) free(inventory->items); inventory->n_items = 0;
+  if(inventory->list->n_items > 0) free(inventory->items);
   return 0;
 }
 
@@ -241,7 +241,7 @@ int inventory_take_items(Inventory* inventory, int item_id, int amount) {
 };
 
 int inventory_transfer_to(Inventory* from, Inventory* to) {
-  for(int i = 0;i < from->n_items;i++) {
+  for(int i = 0;i < from->list->n_items; i++) {
     to->items[i] += from->items[i]; // Add items
     from->items[i] = 0; // Clean 'from' inventory of items
   }
@@ -250,7 +250,7 @@ int inventory_transfer_to(Inventory* from, Inventory* to) {
 
 int inventory_unique_item_count(Inventory* inventory) {
   int uniques = 0;
-  for(int i= 0; i < inventory->n_items; i++) {
+  for(int i= 0; i < inventory->list->n_items; i++) {
     if(inventory->items[i] > 0) {
       uniques++;
     }
@@ -260,7 +260,7 @@ int inventory_unique_item_count(Inventory* inventory) {
 
 int inventory_unique_nth_count(Inventory* inventory, int item_id) {
   int n = 0;
-  for(int i = 0;i < inventory->n_items;i++) {
+  for(int i = 0;i < inventory->list->n_items;i++) {
     if(i == item_id) break;
     if(inventory->items[i] > 0) {
       n++;
@@ -274,7 +274,7 @@ int inventory_get_next_item(Inventory* inventory, int current_id) {
   int i = current_id;
   while(1) {
     i++;
-    if(i >= inventory->n_items) i = 0;
+    if(i >= inventory->list->n_items) i = 0;
     if(inventory->items[i] > 0) return i;
   }
 };
@@ -284,14 +284,14 @@ int inventory_get_previous_item(Inventory* inventory, int current_id) {
   int i = current_id;
   while(1) {
     i--;
-    if(i < 0) i = inventory->n_items - 1;
+    if(i < 0) i = inventory->list->n_items - 1;
     if(inventory->items[i] > 0) return i;
   }
 };
 
 int inventory_get_weight(Inventory* inventory, ItemList* item_list) {
   int w = 0;
-  for(int i = 0;i < inventory->n_items;i++) {
+  for(int i = 0;i < item_list->n_items;i++) {
     w += item_list->items[i].weight * inventory->items[i];
   }
   return w;
