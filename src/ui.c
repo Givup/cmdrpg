@@ -35,7 +35,7 @@ int set_ui_panel_callback(UIPanel* panel, void* data, const char**(*callback)(vo
 
 int render_ui_panel(UISystem* system, UIPanel* panel, const char** text) {
   if(panel->text_callback != NULL) {
-    text = panel->text_callback(system, panel->user_data);
+    text = panel->text_callback(system, panel);
   }
 
   int text_index = -panel->margin_vertical;

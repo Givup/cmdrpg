@@ -11,7 +11,7 @@ typedef struct {
   WORD attributes_render;
   int text_alignment;
   void* user_data;
-  const char** (*text_callback)(void*, void*);
+  const char** (*text_callback)(void*, void*); // UISystem*, UIPanel*
 } UIPanel;
 
 typedef struct {
