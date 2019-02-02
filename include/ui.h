@@ -9,6 +9,7 @@ typedef struct {
   int margin_vertical;
   WORD attributes_clear;
   WORD attributes_render;
+  int text_alignment;
   void* user_data;
   const char** (*text_callback)(void*, void*);
 } UIPanel;

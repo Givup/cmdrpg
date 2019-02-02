@@ -15,6 +15,8 @@ int create_ui_panel(UIPanel* panel, int x, int y, int w, int h, WORD clear, WORD
   panel->margin_vertical = 0;
   panel->attributes_clear = clear;
   panel->attributes_render = render;
+  panel->text_alignment = 0;
+  panel->user_data = NULL;
   panel->text_callback = NULL;
   return 0;
 };
@@ -53,7 +55,15 @@ int render_ui_panel(UISystem* system, UIPanel* panel, const char** text) {
       memcpy(buffer, *(text + text_index), length);
       if(length < panel->w) buffer[length] = 0;
 
-      print_string(system->screen, buffer, panel->attributes_render, panel->x + panel->margin_horizontal, y, ALIGN_LEFT);
+      int x_start = panel->x + panel->margin_horizontal;
+
+      if(panel->text_alignment == ALIGN_RIGHT) {
+	x_start = panel->x + panel->w - panel->margin_horizontal;
+      } else if(panel->text_alignment == ALIGN_CENTER) {
+	x_start = panel->x + panel->w / 2;
+      }
+
+      print_string(system->screen, buffer, panel->attributes_render, x_start, y, panel->text_alignment);
 
       text_index++;
     }

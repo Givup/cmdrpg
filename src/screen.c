@@ -64,7 +64,7 @@ void show_cursor(Screen* screen, BOOL state) {
   SetConsoleCursorInfo(screen->console_handle, &cursor_info);
 };
 
-int get_char_offset(const char* str, int align) {
+int get_alignment_offset(const char* str, int align) {
   if(align == ALIGN_LEFT) {
     return 0;
   }
@@ -79,7 +79,7 @@ int get_char_offset(const char* str, int align) {
 };
 
 int print_string(Screen* screen, const char* str, WORD attr, int x, int y, int align) {
-  int char_offset = get_char_offset(str, align);
+  int char_offset = get_alignment_offset(str, align);
   int base_index = y * screen->width + x + char_offset;
   int offset = 0;
   int index;

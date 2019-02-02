@@ -50,6 +50,8 @@ extern int free_screen(Screen*);
 
 extern void show_cursor(Screen*, BOOL);
 
+extern int get_alignment_offset(const char*, int);
+
 // Screen pointer, string, Colors, x, y, alignment
 extern int print_string(Screen*, const char*, WORD, int, int, int);
 

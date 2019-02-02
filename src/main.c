@@ -40,11 +40,11 @@ typedef struct {
 #define CSW 30
 #define CSH (SH - 2)
 
+// Array of strings print helper macro
 #define CALLBACK_PRINT(buffer_a, y, format, ...) snprintf(buffer_a[y], CSW, format, __VA_ARGS__)
 
-
+// Callback function for the character sheet UIPanel
 const char** status_screen_callback(void* system, void* data) {
-
   char** lines = malloc(sizeof(char*) * CSH);
   for(int i = 0;i < CSH;i++) {
     *(lines + i) = malloc(sizeof(char) * CSW + 1);
@@ -57,7 +57,6 @@ const char** status_screen_callback(void* system, void* data) {
   int line = 2;
 
   CALLBACK_PRINT(lines, 0, "STATUS", 0);
-
 
   CALLBACK_PRINT(lines, line++, "Health: %d / %d", player.status.hp, player.status.max_hp);
   CALLBACK_PRINT(lines, line++, "Hunger: %d / %d", player.status.hunger / 25, player.status.max_hunger / 25);
@@ -257,7 +256,7 @@ int main(int argc, char** argv) {
 
   UIPanel status_panel;
   create_ui_panel(&status_panel, 0, 0, CSW, CSH, BG_BLACK, FG_WHITE);
-  set_margin_ui_panel(&status_panel, 2, 0);
+  set_margin_ui_panel(&status_panel, 2, 1);
   set_ui_panel_callback(&status_panel, (void*)&player, status_screen_callback);
 
   // Flags for rendering and ticking
@@ -579,116 +578,13 @@ int main(int argc, char** argv) {
 
       // Character sheet
       if(show_character_sheet) {
-	/*
 	int x = 0;
+	status_panel.text_alignment = ALIGN_LEFT;
 	if(px < SW / 2 + 1) {
 	  x = SW - CSW;
+	  status_panel.text_alignment = ALIGN_RIGHT;
 	}
-
-	char c_buffer[CSW + 1];
-	c_buffer[CSW] = 0;
-	memset(c_buffer, ' ', CSW);
-	for(int y = 0;y < CSH; y++) {
-	  print_string(&screen, c_buffer, FG_WHITE, x, y, ALIGN_LEFT);
-	}
-
-	char stat_buffer[(CSW + 1) * CSH];
-	memset(stat_buffer, 0, (CSW + 1) * CSH);
-
-	int line = 2;
-
-	print_string(&screen, "STATUS", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
-	STAT_PRINT(line++, "Health: %d / %d", player.status.hp, player.status.max_hp);
-	STAT_PRINT(line++, "Hunger: %d / %d", player.status.hunger / 25, player.status.max_hunger / 25);
-	STAT_PRINT(line++, "Thirst: %d / %d", player.status.thirst / 25, player.status.max_thirst / 25);
-
-	int weight = inventory_get_weight(&player.inventory, &item_list);
-
-	STAT_PRINT(line++, "Weight: %d.%d kg", weight / 1000, (weight % 1000) / 10);
-
-	line++;
-
-	int wpn = player.inventory.equipped_items[EQUIP_SLOT_WEAPON];
-	int head = player.inventory.equipped_items[EQUIP_SLOT_HEAD];
-	int body = player.inventory.equipped_items[EQUIP_SLOT_BODY];
-	int legs = player.inventory.equipped_items[EQUIP_SLOT_LEGS];
-
-	STAT_PRINT(line++, "WPN: %s", wpn != -1 ? item_list.items[wpn].name : "Fists");
-	STAT_PRINT(line++, "HEAD: %s", head != -1 ? item_list.items[head].name : "None");
-	STAT_PRINT(line++, "BODY: %s", body != -1 ? item_list.items[body].name : "None");
-	STAT_PRINT(line++, "LEGS: %s", legs != -1 ? item_list.items[legs].name : "None");
-
-	if(wpn != -1) {
-	  int w_meta = item_list.items[wpn].metadata;
-
-	  int dmg_type_physical = w_meta & 0x0F;
-	  int dmg_type_magical = w_meta & 0xF0;
-
-	  STAT_PRINT(11, "DMG: %d", get_value_from_metadata(w_meta));
-	  STAT_PRINT(12, "%s %s",
-		     dmg_type_magical ? get_damage_type_str(dmg_type_magical) : "", 
-		     dmg_type_physical ? get_damage_type_str(dmg_type_physical) :"");
-	} else {
-	  STAT_PRINT(11, "Offensive", 0);
-	  STAT_PRINT(12, "DMG: 1", 0);
-	  STAT_PRINT(13, "%s", get_damage_type_str(DAMAGE_TYPE_BLUNT));
-	}
-
-	{
-	  int h_meta = head != -1 ? item_list.items[head].metadata : 0;
-	  int b_meta = body != -1 ? item_list.items[body].metadata : 0;
-	  int l_meta = legs != -1 ? item_list.items[legs].metadata : 0;
-
-	  int slash_armor = 0;
-	  int thrust_armor = 0;
-	  int blunt_armor = 0;
-
-	  int shock_armor = 0;
-	  int fire_armor = 0;
-	  int ice_armor = 0;
-
-	  slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, h_meta);
-	  slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, b_meta);
-	  slash_armor += get_type_value_from_metadata(DAMAGE_TYPE_SLASH, l_meta);
-	  
-	  thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, h_meta);
-	  thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, b_meta);
-	  thrust_armor += get_type_value_from_metadata(DAMAGE_TYPE_THRUST, l_meta);
-	  
-	  blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, h_meta);
-	  blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, b_meta);
-	  blunt_armor += get_type_value_from_metadata(DAMAGE_TYPE_BLUNT, l_meta);
-
-	  shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, h_meta);
-	  shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, b_meta);
-	  shock_armor += get_type_value_from_metadata(DAMAGE_TYPE_SHOCK, l_meta);
-
-	  fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, h_meta);
-	  fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, b_meta);
-	  fire_armor += get_type_value_from_metadata(DAMAGE_TYPE_FIRE, l_meta);
-
-	  ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, h_meta);
-	  ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, b_meta);
-	  ice_armor += get_type_value_from_metadata(DAMAGE_TYPE_ICE, l_meta);
-
-	  STAT_PRINT(15, "Defensive", 0);
-	  STAT_PRINT(16, "Slash: %d", slash_armor);
-	  STAT_PRINT(17, "Thrust: %d", thrust_armor);
-	  STAT_PRINT(18, "Blunt: %d", blunt_armor);
-	  STAT_PRINT(19, "Shock: %d", shock_armor);
-	  STAT_PRINT(20, "Fire: %d", fire_armor);
-	  STAT_PRINT(21, "Ice: %d", ice_armor);
-	}
-
-	for(int y = 0;y < CSH;y++) {
-	  int color = FG_WHITE;
-	  if(x == 0) {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
-	  } else {
-	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + CSW - 2, y, ALIGN_RIGHT);
-	  }
-	}
-	*/
+	status_panel.x = x;
 	render_ui_panel(&ui_system, &status_panel, NULL);
       }
 
