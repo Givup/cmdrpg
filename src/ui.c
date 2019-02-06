@@ -1,6 +1,8 @@
 #include "ui.h"
 #include <stdio.h>
 
+#include "log.h"
+
 int create_ui(UISystem* system, Screen* screen) {
   system->screen = screen;
   return 0;
@@ -21,21 +23,32 @@ int create_ui_panel(UIPanel* panel, int x, int y, int w, int h, WORD clear, WORD
   return 0;
 };
 
+int resize_ui_panel(UIPanel* panel, int x, int y, int w, int h) {
+  panel->x = x;
+  panel->y = y;
+  panel->w = w;
+  panel->h = h;
+  return 0;
+};
+
 int set_margin_ui_panel(UIPanel* panel, int margin_h, int margin_v) {
   panel->margin_horizontal = margin_h;
   panel->margin_vertical = margin_v;
   return 0;
 };
 
-int set_ui_panel_callback(UIPanel* panel, void* data, const char**(*callback)(void*, void*)) {
+int set_ui_panel_callback(UIPanel* panel, void* data, char**(*callback)(void*, void*)) {
   panel->user_data = data;
   panel->text_callback = callback;
   return 0;
 };
 
-int render_ui_panel(UISystem* system, UIPanel* panel, const char** text) {
+int render_ui_panel(UISystem* system, UIPanel* panel, char** text) {
   if(panel->text_callback != NULL) {
     text = panel->text_callback(system, panel);
+  }
+  if(text == NULL) {
+    return 1;
   }
 
   int text_index = -panel->margin_vertical;
@@ -67,6 +80,15 @@ int render_ui_panel(UISystem* system, UIPanel* panel, const char** text) {
 
       text_index++;
     }
+  }
+  
+  if(panel->text_callback != NULL) {
+    /*
+      for(int i = 0;i < text_index;i++) {
+      free(text[i]);
+      }
+      free(text);
+    */
   }
 
   free(buffer);

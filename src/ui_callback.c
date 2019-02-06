@@ -10,7 +10,7 @@
 #define CALLBACK_PRINT(buffer_a, y, format, ...) snprintf(buffer_a[y], panel->w, format, __VA_ARGS__)
 
 // Callback function for the character sheet UIPanel
-const char** status_screen_callback(void* system, void* p_panel) {
+char** status_screen_callback(void* system, void* p_panel) {
   UIPanel* panel = (UIPanel*)p_panel;
 
   char** lines = malloc(sizeof(char*) * panel->h);
@@ -109,5 +109,5 @@ const char** status_screen_callback(void* system, void* p_panel) {
     CALLBACK_PRINT(lines, 21, "Ice: %d", ice_armor);
   }
 
-  return (const char**)lines;
+  return lines;
 };

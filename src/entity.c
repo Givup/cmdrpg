@@ -3,12 +3,15 @@
 #include "core.h"
 #include "equipment.h"
 
-int interact_with_entity(Map* map, int x, int y,
-			 Inventory* inventory, ItemList* item_list,
-			 Status* status) 
-{
+#include "dialog.h"
+
+int interact_with_entity(Map* map, int x, int y, Player* player) {
   MapEntity* entity = get_entity(map, x, y);
   if(entity == NULL) return -1;
+
+  Status* status = &player->status;
+  Inventory* inventory = &player->inventory;
+  ItemList* item_list = inventory->list;
 
   switch(entity->tile) {
   case ENTITY_CACTUS:
@@ -79,6 +82,12 @@ int interact_with_entity(Map* map, int x, int y,
 	inventory_add_items(inventory, get_item_by_name(item_list, item_name), randomi_range(1, 3));
 	set_entity(map, x, y, TILE_UNDEF, 0);
       }
+      return 1;
+    };
+
+  case ENTITY_NPC:
+    {
+      open_dialog(&player->dialog, 0, 0);
       return 1;
     };
 

@@ -55,6 +55,8 @@ const char* get_entity_str(int entity, int metadata) {
   case ENTITY_WALKED_SNOW: return "\260";
   case ENTITY_COW: return "M";
 
+  case ENTITY_NPC: return "H";
+
   case ENTITY_HOUSE:
     {
       // House metadata contains the connection points
@@ -85,6 +87,7 @@ WORD get_entity_attributes(int entity) {
   case ENTITY_DOOR: return FG_RED;
   case ENTITY_MONEY: return FG_LIGHT_GREEN;
   case ENTITY_COW: return FG_BLACK;
+  case ENTITY_NPC: return FG_BLACK;
   default: return FG_MAGENTA | BG_MAGENTA;
   }
 };
@@ -212,7 +215,7 @@ void create_map(Map* map, int w, int h) {
   }
   map->pool_count = TILE_COUNT;
   
-  int forest_pool[] = { ENTITY_COW, 5 };
+  int forest_pool[] = { ENTITY_COW, 5, ENTITY_NPC, 1 };
   create_biome_pool(map, TILE_GRASS, forest_pool, sizeof(forest_pool) / sizeof(int) / 2);
 
   int sand_pool[] = { ENTITY_CACTUS, 100, ENTITY_SCRUB, 100, ENTITY_HOUSE, 5, ENTITY_COW, 10 };

@@ -3,7 +3,8 @@
 
 #include "map.h"
 #include "item.h"
+#include "player.h"
 
-extern int interact_with_entity(Map*, int, int, Inventory*, ItemList*, Status*);
+extern int interact_with_entity(Map*, int, int, Player*);
 
 #endif

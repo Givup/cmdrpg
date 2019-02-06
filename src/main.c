@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "core.h"
+#include "log.h"
 #include "clock.h"
 #include "perlin.h"
 #include "audio.h"
@@ -36,7 +37,7 @@
 #define CSH (SH - 2)
 
 // Callback function in ui_callback.c, which gives the status screen lines
-extern const char** status_screen_callback(void*, void*);
+extern char** status_screen_callback(void*, void*);
 
 // sinewave
 // Generates a sinewave tone with frequency and amplitude
@@ -68,6 +69,8 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
 };
 
 int main(int argc, char** argv) {
+  OPEN_LOGF("log.txt", "", 0);
+
   ItemList item_list;
   if(load_items(&item_list, "items/list.txt")) {
     printf("Failed to load item list!\n");
@@ -75,6 +78,7 @@ int main(int argc, char** argv) {
   }
 
   Player player;
+  init_dialog(&player.dialog);
   create_inventory(&player.inventory, &item_list);
 
   inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Iron Sword"), 1);
@@ -153,6 +157,11 @@ int main(int argc, char** argv) {
   create_ui_panel(&status_panel, 0, 0, CSW, CSH, BG_BLACK, FG_WHITE);
   set_margin_ui_panel(&status_panel, 2, 1);
   set_ui_panel_callback(&status_panel, (void*)&player, status_screen_callback);
+
+  UIPanel dialog_panel;
+  create_ui_panel(&dialog_panel, 0, 0, 0, 0, BG_BLACK, FG_WHITE);
+  set_margin_ui_panel(&dialog_panel, 1, 1);
+  set_ui_panel_callback(&dialog_panel, (void*)&player.dialog, dialog_callback);
 
   // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
@@ -264,8 +273,12 @@ int main(int argc, char** argv) {
 	if(prev != -1) {
 	  selected_item = prev;
 	}
+      } else if(player.dialog.active > 0) {
+	if(player.dialog.active > 1) {
+	  player.dialog.active--;
+	}
       } else if(mode == MODE_BIOME) { // Interact with map (UP of player)
-	interact_with_entity(&map, px, py - 1, &player.inventory, &item_list, &player.status);
+	interact_with_entity(&map, px, py - 1, &player);
       }
       should_render = 1;
     } up_last = GetKeyState(VK_UP) & 0x8000;
@@ -277,8 +290,12 @@ int main(int argc, char** argv) {
 	if(next != -1) {
 	  selected_item = next;
 	}
+      } else if(player.dialog.active > 0) {
+	if(player.dialog.active < player.dialog.n_options) {
+	  player.dialog.active++;
+	}
       } else if(mode == MODE_BIOME) { // Interact with map (DOWN of player)
-	interact_with_entity(&map, px, py + 1, &player.inventory, &item_list, &player.status);
+	interact_with_entity(&map, px, py + 1, &player);
       }
       should_render = 1;
     } down_last = GetKeyState(VK_DOWN) & 0x8000;
@@ -286,7 +303,7 @@ int main(int argc, char** argv) {
     if(GetKeyState(VK_LEFT) & 0x8000 && left_last == 0) {
       if(show_inventory) {
       } else if(mode == MODE_BIOME) { // Interact with map (LEFT of player)
-		interact_with_entity(&map, px - 1, py, &player.inventory, &item_list, &player.status);
+		interact_with_entity(&map, px - 1, py, &player);
       }
       should_render = 1;
     } left_last = GetKeyState(VK_LEFT) & 0x8000;
@@ -303,7 +320,7 @@ int main(int argc, char** argv) {
 	
 	}
       } else if(mode == MODE_BIOME) { // Interact with map (RIGHT of player)
-	interact_with_entity(&map, px + 1, py, &player.inventory, &item_list, &player.status);
+	interact_with_entity(&map, px + 1, py, &player);
       }
       should_render = 1;
     } right_last = GetKeyState(VK_RIGHT) & 0x8000;
@@ -540,7 +557,14 @@ int main(int argc, char** argv) {
 	}
       }
 
-      //render_ui_panel(&ui_system, &status_panel, NULL);
+      if(player.dialog.active) {
+	int w = player.dialog.line_length + 2;
+	int h = player.dialog.n_lines + player.dialog.n_options + 3;
+	resize_ui_panel(&dialog_panel, SW / 2 - w / 2, SH / 2 - h / 2, w, h);
+	if(render_ui_panel(&ui_system, &dialog_panel, NULL)) {
+	  PRINT_LOG("Failed to render dialog panel!\n", 0);
+	}
+      }
 
       print_console(&screen);
 

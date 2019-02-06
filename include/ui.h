@@ -11,7 +11,7 @@ typedef struct {
   WORD attributes_render;
   int text_alignment;
   void* user_data;
-  const char** (*text_callback)(void*, void*); // UISystem*, UIPanel*
+  char** (*text_callback)(void*, void*); // UISystem*, UIPanel*
 } UIPanel;
 
 typedef struct {
@@ -21,9 +21,10 @@ typedef struct {
 extern int create_ui(UISystem*, Screen*);
 
 extern int create_ui_panel(UIPanel*, int, int, int, int, WORD, WORD);
+extern int resize_ui_panel(UIPanel*, int, int, int, int);
 extern int set_margin_ui_panel(UIPanel*, int, int);
-extern int set_ui_panel_callback(UIPanel*, void*, const char**(*callbackNULL)(void*, void*));
+extern int set_ui_panel_callback(UIPanel*, void*, char**(*callbackNULL)(void*, void*));
 
-extern int render_ui_panel(UISystem*, UIPanel*, const char**);
+extern int render_ui_panel(UISystem*, UIPanel*, char**);
 
 #endif

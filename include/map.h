@@ -24,6 +24,7 @@
 #define ENTITY_FLOOR       6
 #define ENTITY_MONEY       7
 #define ENTITY_COW         8
+#define ENTITY_NPC         9
 
 typedef struct {
   int pool_size;
