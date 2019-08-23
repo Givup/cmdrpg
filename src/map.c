@@ -393,8 +393,12 @@ void populate_biome(Map* map, int biome_tile) {
 void
 load_map(Map *map, const char *map_file)
 {
+  char tilemap_file[256];
+  strcpy(tilemap_file, map_file);
+  strcat(tilemap_file, ".tmap");
+
   // File pointer
-  FILE *fp = fopen(map_file, "rb");
+  FILE *fp = fopen(tilemap_file, "rb");
 
   // Find file size
   fseek(fp, 0L, SEEK_END);

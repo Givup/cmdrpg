@@ -20,6 +20,7 @@
 #include "winkey.h"
 
 #define AUDIO_DISABLE 0
+#define FAKE_DELAY_COUNT 5000000
 
 // Macros
 // Character screen status print
@@ -28,6 +29,12 @@
 // Status line (bottom one) print
 #define STATUS_LINE_PRINT(color, y, format, ...) print_len = snprintf(line_buffer, SW - printed, format, __VA_ARGS__); \
   printed += print_string(&screen, line_buffer, color, printed, y, ALIGN_LEFT); \
+
+#define PRINT_LOADING_LINE(text) print_string(&screen, clean_line, FG_GRAY, 0, 5, ALIGN_LEFT); \
+  print_string(&screen, text, FG_WHITE, SW / 2, 5, ALIGN_CENTER); \
+  print_console(&screen); \
+
+#define FAKE_DELAY() {float f = 0.0f; for(int i = 0;i < FAKE_DELAY_COUNT;i++) { f += sin(i); f = sqrtf(f); }}
 
 // Screen width and height
 #define SW 120
@@ -72,11 +79,33 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
 int main(int argc, char** argv) {
   OPEN_LOGF("log.txt", "", 0);
 
+  char clean_line[SW + 1];
+  strcpy(clean_line + 0,  "........................................");
+  strcpy(clean_line + 40, "........................................");
+  strcpy(clean_line + 80, "........................................\0");
+
+  // For detecting if the console is active
+  HWND window_handle = GetForegroundWindow();
+
+  // Create screen with dimensions [SW, SH]
+  Screen screen;
+  if(create_screen(&screen, SW, SH)) {
+    printf("Failed to create screen.\n");
+    return 1;
+  }
+  show_cursor(&screen, FALSE); // Disable cursor blinking
+
+  PRINT_LOADING_LINE("Loading items");
+  FAKE_DELAY();
+
   ItemList item_list;
   if(load_items(&item_list, "items/list.txt")) {
     printf("Failed to load item list!\n");
     return 1;
   }
+
+  PRINT_LOADING_LINE("Initializing player");
+  FAKE_DELAY();
 
   Player player;
   init_dialog(&player.dialog);
@@ -92,24 +121,20 @@ int main(int argc, char** argv) {
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
-  // For detecting if the console is active
-  HWND window_handle = GetForegroundWindow();
-
-  // Create screen with dimensions [SW, SH]
-  Screen screen;
-  if(create_screen(&screen, SW, SH)) {
-    printf("Failed to create screen.\n");
-    return 1;
-  }
-  show_cursor(&screen, FALSE); // Disable cursor blinking
-
 #if (AUDIO_DISABLE == 0)
+
+  PRINT_LOADING_LINE("Setting up audio");
+  FAKE_DELAY();
+
   // Create audio output device
   AudioODevice output_device;
   if(create_output_device(&output_device, 8, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
     printf("Failed to create audio device.\n");
     return 1;
   }
+
+  PRINT_LOADING_LINE("Loading hurt.raw");
+  FAKE_DELAY();
 
   // Load audio file hurt.raw
   AudioData hurt;
@@ -118,9 +143,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  PRINT_LOADING_LINE("Loading tent_rain.ogg");
+  FAKE_DELAY();
+
   // Load background music from wav file
   AudioData music;
-  if(load_audio_data_from_ogg(&music, "res/Aamunavaus.ogg")) {
+  if(load_audio_data_from_ogg(&music, "res/tent_rain.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
@@ -136,6 +164,9 @@ int main(int argc, char** argv) {
   // enumerate_output_devices(output_device.win_format);
 #endif
 
+  PRINT_LOADING_LINE("Setting up the world");
+  FAKE_DELAY();
+
   // Line buffer, so we don't have to re-allocate memory every frame
   char line_buffer[SW + 1];
   memset(line_buffer, ' ', SW);
@@ -144,7 +175,7 @@ int main(int argc, char** argv) {
   // Create map
   Map map;
   create_map(&map, SW, SH - 2);
-  load_map(&map, "res/map.gmap"); // Load map from map file
+  load_map(&map, "res/map"); // Load map from map file
 
   // Movement cooldown
   float can_move = 0.0f;
@@ -154,6 +185,9 @@ int main(int argc, char** argv) {
 
   // Player status
   init_status(&player.status, 25, 2500, 2500);
+
+  PRINT_LOADING_LINE("Setting up the UI");
+  FAKE_DELAY();
 
   UISystem ui_system;
   create_ui(&ui_system, &screen);
@@ -194,6 +228,9 @@ int main(int argc, char** argv) {
 
   float total_time = 0.0f;
   float dt = 0.0f;
+
+  PRINT_LOADING_LINE("Finalizing");
+  FAKE_DELAY();
 
   while(1) {
     // Current runtime count in seconds
@@ -266,7 +303,7 @@ int main(int argc, char** argv) {
     // Reload map (Press R) (DEBUG)
     if(GetKeyState(WKEY_R) &  0x8000 && r_last == 0)
     {
-      load_map(&map, "res/map.gmap");
+      load_map(&map, "res/map");
       px = map.spawn_x;
       py = map.spawn_y;
       should_render = 1;
