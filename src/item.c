@@ -307,6 +307,12 @@ int use_item_for_status(Item* item, Status* status) {
     break;
   case ITEM_TYPE_HEAL:
     status->hp = min(status->hp + item->metadata, status->max_hp);
+    if(status->bleeding) {
+      status->bleeding = 0;
+    }
+    if(status->infected) {
+      status->infected = 0;
+    }
     break;
   default: return 0;
   };

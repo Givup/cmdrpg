@@ -38,6 +38,7 @@ typedef struct {
 
 typedef struct {
   int width, height;
+  int spawn_x, spawn_y;
   int* tiles;
   MapEntity* entities;
 
@@ -67,8 +68,8 @@ extern void update_entities(Map*);
 extern void reset_entities(Map*);
 extern void clear_entities(Map*);
 
-extern void generate_map(Map*, int, int, int, int);
-extern int  generate_biome_at(Map*, int, int);
+extern void load_map(Map*, const char*);
+extern int generate_biome_at(Map*, int, int);
 
 extern int can_move_to(Map*, int, int);
 extern void try_move_to(Map*, int, int, Status*);

@@ -17,8 +17,9 @@
 #include "equipment.h"
 #include "entity.h"
 #include "player.h"
+#include "winkey.h"
 
-#define AUDIO_DISABLE 1
+#define AUDIO_DISABLE 0
 
 // Macros
 // Character screen status print
@@ -81,8 +82,13 @@ int main(int argc, char** argv) {
   init_dialog(&player.dialog);
   create_inventory(&player.inventory, &item_list);
 
+  for(int i = 0;i < item_list.n_items;i++) {
+    inventory_add_items(&player.inventory, i, 1);
+  }
+
   inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Iron Sword"), 1);
   inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Fire Sword"), 1);
+  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Healing Potion"), 1);
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -114,7 +120,7 @@ int main(int argc, char** argv) {
 
   // Load background music from wav file
   AudioData music;
-  if(load_audio_data_from_ogg(&music, "Duet_for_Violin_and_Piano.ogg")) {
+  if(load_audio_data_from_ogg(&music, "res/Aamunavaus.ogg")) {
     printf("Failed to load background music.\n");
     return 1;
   }
@@ -127,7 +133,7 @@ int main(int argc, char** argv) {
   }
 
   // Print all the output devices for the fun of it
-  enumerate_output_devices(output_device.win_format);
+  // enumerate_output_devices(output_device.win_format);
 #endif
 
   // Line buffer, so we don't have to re-allocate memory every frame
@@ -138,14 +144,13 @@ int main(int argc, char** argv) {
   // Create map
   Map map;
   create_map(&map, SW, SH - 2);
-  generate_map(&map, 0, 0, map.width, map.height); // Generates world map using perlin-noise
+  load_map(&map, "res/map.gmap"); // Load map from map file
 
   // Movement cooldown
   float can_move = 0.0f;
 
   // Coordinates
-  int map_x, map_y; // World offset saved when entering biome mode
-  int px = 0, py = 0; // Player coordinates
+  int px = map.spawn_x, py = map.spawn_y; // Player coordinates
 
   // Player status
   init_status(&player.status, 25, 2500, 2500);
@@ -166,19 +171,14 @@ int main(int argc, char** argv) {
   // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
 
-  // Two different game modes
-  const int MODE_WORLD = 0;
-  const int MODE_BIOME = 1;
-
   // Flags
   int show_character_sheet = 0;
   int show_inventory = 0;
   int inventory_scroll = 0;
   int selected_item = inventory_get_next_item(&player.inventory, -1);
-  int mode = MODE_WORLD;
 
   // Input flags so they only trigger once when pressed
-  int space_last = 0, c_last = 0, i_last = 0;
+  int space_last = 0, c_last = 0, i_last = 0, r_last = 0;
   int up_last = 0, down_last = 0, right_last = 0, left_last = 0;
 
   // How much player moved this frame
@@ -218,12 +218,10 @@ int main(int argc, char** argv) {
       }
 
       // Play background music 'on loop'
-      /*
-	mix_audio(&mixer, &music, 1.0f);
+      mix_audio(&mixer, &music, 1.0f);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
-      */
 
       // Actually push the audio data to the output device
       queue_data_to_output_device(&output_device, &mixer);
@@ -252,18 +250,27 @@ int main(int argc, char** argv) {
     }
 
     // Toggle inventory (Press I)
-    if(GetKeyState(0x49) & 0x8000 && i_last == 0) {
+    if(GetKeyState(WKEY_I) & 0x8000 && i_last == 0) {
       show_inventory = ~show_inventory & 1;
       should_render = 1;
       show_character_sheet = 0;
-    } i_last = GetKeyState(0x49) & 0x8000;
+    } i_last = GetKeyState(WKEY_I) & 0x8000;
     
     // Toggle character sheet (Press C)
-    if(GetKeyState(0x43) & 0x8000 && c_last == 0) {
+    if(GetKeyState(WKEY_C) & 0x8000 && c_last == 0) {
       show_character_sheet = ~show_character_sheet & 1;
       should_render = 1;
       show_inventory = 0;
-    } c_last = GetKeyState(0x43) & 0x8000;
+    } c_last = GetKeyState(WKEY_C) & 0x8000;
+
+    // Reload map (Press R) (DEBUG)
+    if(GetKeyState(WKEY_R) &  0x8000 && r_last == 0)
+    {
+      load_map(&map, "res/map.gmap");
+      px = map.spawn_x;
+      py = map.spawn_y;
+      should_render = 1;
+    } r_last = GetKeyState(WKEY_R) & 0x8000;
 
     // ARROW KEYS
     if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
@@ -277,7 +284,7 @@ int main(int argc, char** argv) {
 	if(player.dialog.active > 1) {
 	  player.dialog.active--;
 	}
-      } else if(mode == MODE_BIOME) { // Interact with map (UP of player)
+      } else { // Interact with map (UP of player)
 	interact_with_entity(&map, px, py - 1, &player);
       }
       should_render = 1;
@@ -294,7 +301,7 @@ int main(int argc, char** argv) {
 	if(player.dialog.active < player.dialog.n_options) {
 	  player.dialog.active++;
 	}
-      } else if(mode == MODE_BIOME) { // Interact with map (DOWN of player)
+      } else { // Interact with map (DOWN of player)
 	interact_with_entity(&map, px, py + 1, &player);
       }
       should_render = 1;
@@ -302,7 +309,7 @@ int main(int argc, char** argv) {
 
     if(GetKeyState(VK_LEFT) & 0x8000 && left_last == 0) {
       if(show_inventory) {
-      } else if(mode == MODE_BIOME) { // Interact with map (LEFT of player)
+      } else { // Interact with map (LEFT of player)
 		interact_with_entity(&map, px - 1, py, &player);
       }
       should_render = 1;
@@ -319,29 +326,15 @@ int main(int argc, char** argv) {
 	} else if(use_item_for_equipment(&item, &player.inventory)) {
 	
 	}
-      } else if(mode == MODE_BIOME) { // Interact with map (RIGHT of player)
+      } else if(player.dialog.active > 0) {
+	player.dialog.active = 0;
+	free_dialog(&player.dialog);
+      } else { // Interact with map (RIGHT of player)
 	interact_with_entity(&map, px + 1, py, &player);
       }
       should_render = 1;
     } right_last = GetKeyState(VK_RIGHT) & 0x8000;
 
-    if(GetKeyState(VK_SPACE) & 0x8000 && space_last == 0) {
-      if(mode == MODE_WORLD) {
-	if(generate_biome_at(&map, map.width / 2, map.height / 2)) {
-	  map_x = px;
-	  map_y = py;
-	  px = map.width / 2;
-	  py = map.height / 2;
-	  mode = MODE_BIOME;
-	}
-      } else {
-	px = map_x;
-	py = map_y;
-	mode = MODE_WORLD;
-	clear_entities(&map);
-      }
-      should_tick = 1;
-    }
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
     if(GetKeyState(0x57) & 0x8000 && can_move <= 0.0f) {
@@ -358,14 +351,31 @@ int main(int argc, char** argv) {
     }
 
     Status env_status = { 0 };
-    if(mode == MODE_WORLD) {
-      px += d_x;
-      py += d_y;
+    // Moving
+    {
+      if(d_x != 0 || d_y != 0)
+      {
+	int new_x = (px + d_x + map.width) % map.width;
+	int new_y = (py + d_y + map.height) % map.height;
+
+	try_move_to(&map, new_x, py, &env_status);
+	try_move_to(&map, px, new_y, &env_status);
+
+	if(can_move_to(&map, new_x, py))
+	{
+	  px = new_x; should_tick = 1;
+	}
+	if(can_move_to(&map, px, new_y))
+	{
+	  py = new_y; should_tick = 1;
+	}
+      }
 
       if(d_x != 0 || d_y != 0) should_tick = 1;
 
-      env_status.temp = get_tile_temp(get_tile_at(&map, map.width / 2, map.height / 2));
+      env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
     } 
+    /*
     else if(mode == MODE_BIOME) {
       if(d_x != 0 || d_y != 0) {
 	try_move_to(&map, (px + d_x + map.width) % map.width, py, &env_status);
@@ -392,6 +402,7 @@ int main(int argc, char** argv) {
 	env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
       }
     }
+    */
 
     d_x = d_y = 0;
 
@@ -401,7 +412,7 @@ int main(int argc, char** argv) {
 	reset_entities(&map);
 	update_entities(&map);
 	apply_status(env_status, &player.status); // Apply environment status to player
-
+	/*
 	if(mode == MODE_WORLD) {
 	  int wetness = get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 5 : 0;
 	  if(wetness > 0) {
@@ -412,36 +423,42 @@ int main(int argc, char** argv) {
 	    }
 	  }
 	}
+	*/
 
 	if(tick_status(&player.status)) { // If player took damage
 	  play_hurt = 1;
 	}
 
 	int penalty = 1;
+	/*
 	if(mode == MODE_WORLD) {
 	  penalty = get_tile_traverse_penalty(&map, get_tile_at(&map, map.width / 2, map.height / 2));
 	}
+	*/
 	can_move = (float)penalty * (1.0f / 6.0f);
       }
 
       // Rendering world map
+      /*
       if(mode == MODE_WORLD) {
-	generate_map(&map, px - map.width / 2, py - map.height / 2, map.width, map.height);
+	//generate_map(&map, px - map.width / 2, py - map.height / 2, map.width, map.height);
 	print_map(&map, &screen);
 	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, map.width / 2, map.height / 2), map.width / 2, map.height / 2, ALIGN_LEFT);
       }
       else {
+      */
 	print_map(&map, &screen);
 	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, px, py), px, py, ALIGN_LEFT);
 
 	if(get_tile_at(&map, 0, 0) == TILE_MOUNTAIN) {
 	  set_entity(&map, px, py, ENTITY_WALKED_SNOW, 0);
 	}
-      }
+      //}
 
       // Rendering *UI*
       int print_len;
-      int world_x, world_y;
+      // int world_x, world_y;
+      /*
       if(mode == MODE_BIOME) {
 	world_x = px;
 	world_y = py;
@@ -449,11 +466,14 @@ int main(int argc, char** argv) {
 	world_x = map.width / 2;
 	world_y = map.height / 2;
       }
+      */
 
       // Print current biome
+      /*
       print_len = snprintf(line_buffer, SW, "Current biome: %s", get_biome_name(get_tile_at(&map, world_x, world_y)));
       memset(line_buffer + print_len, ' ', SW - print_len);
       print_string(&screen, line_buffer, FG_WHITE | BG_BLACK, 0, SH - 2, ALIGN_LEFT);
+      */
 
       // Print current health for faster seeing than character sheet
       snprintf(line_buffer, SW, "HP: %d/%d", player.status.hp, player.status.max_hp);
