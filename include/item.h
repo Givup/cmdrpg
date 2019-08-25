@@ -23,7 +23,7 @@
 #define EQUIP_SLOT_BODY   2
 #define EQUIP_SLOT_LEGS   3
 
-typedef struct {
+struct Item {
   int id;
   int type;
   int price;
@@ -32,43 +32,73 @@ typedef struct {
   char* name;
   char* short_name;
   char* desc;
-} Item;
+};
 
-extern int is_item_equipable(int);
-extern int item_equip_slot(int);
+extern int
+is_item_equipable(int);
 
-typedef struct {
-  Item* items;
+extern int
+item_equip_slot(int);
+
+struct ItemList {
+  struct Item* items;
   int n_items;
-} ItemList;
+};
 
-extern int load_items(ItemList*, const char*);
-extern int free_items(ItemList*);
+extern int
+load_items(struct ItemList*, const char*);
 
-extern int get_item_by_name(ItemList*, const char*);
+extern int
+free_items(struct ItemList*);
 
-typedef struct {
+extern int
+get_item_by_name(struct ItemList*, const char*);
+
+struct Inventory {
   int* items; // Contains the amount of items by id
-  ItemList* list;
+  struct ItemList* list;
   int equipped_items[4]; // Weapon, helm, torso, legs
-} Inventory;
+};
 
-extern int create_inventory(Inventory*, ItemList*);
-extern int free_inventory(Inventory*);
-extern int inventory_has_item(Inventory*, int);
-extern int inventory_add_items(Inventory*, int, int);
-extern int inventory_take_items(Inventory*, int, int);
-extern int inventory_transfer_to(Inventory*, Inventory*);
-extern int inventory_unique_item_count(Inventory*);
-extern int inventory_unique_nth_count(Inventory*, int);
+extern int
+create_inventory(struct Inventory*, struct ItemList*);
 
-extern int inventory_get_next_item(Inventory*, int);
-extern int inventory_get_previous_item(Inventory*, int);
+extern int
+free_inventory(struct Inventory*);
 
-extern int inventory_get_weight(Inventory*, ItemList*);
+extern int
+inventory_has_item(struct Inventory*, int);
 
-// Item usage
-extern int use_item_for_status(Item*, Status*);
-extern int use_item_for_equipment(Item*, Inventory*);
+extern int
+inventory_add_items(struct Inventory*, int, int);
+
+extern int
+inventory_take_items(struct Inventory*, int, int);
+
+extern int
+inventory_transfer_to(struct Inventory*, struct Inventory*);
+
+extern int
+inventory_unique_item_count(struct Inventory*);
+
+extern int
+inventory_unique_nth_count(struct Inventory*, int);
+
+
+extern int
+inventory_get_next_item(struct Inventory*, int);
+
+extern int
+inventory_get_previous_item(struct Inventory*, int);
+
+extern int
+inventory_get_weight(struct Inventory*, struct ItemList*);
+
+// struct Item usage
+extern int
+use_item_for_status(struct Item*, struct Status*);
+
+extern int
+use_item_for_equipment(struct Item*, struct Inventory*);
 
 #endif

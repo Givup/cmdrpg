@@ -7,7 +7,9 @@
 #include "core.h"
 #include "log.h"
 #include "clock.h"
+#include "winkey.h"
 #include "perlin.h"
+
 #include "audio.h"
 #include "screen.h"
 #include "ui.h"
@@ -16,8 +18,7 @@
 #include "item.h"
 #include "equipment.h"
 #include "entity.h"
-#include "player.h"
-#include "winkey.h"
+#include "dialog.h"
 
 #define AUDIO_DISABLE 1
 #define FAKE_DELAY_COUNT 0 //2500000
@@ -45,13 +46,17 @@
 #define CSH (SH - 2)
 
 // Callback function in ui_callback.c, which gives the status screen lines
-extern char** status_screen_callback(void*, void*);
+extern char**
+status_screen_callback(void*, void*);
 
 // sinewave
 // Generates a sinewave tone with frequency and amplitude
 // Returns a pointer to the data, and len is set to bytes generated
-void* sinewave(float amplitude, float frequency, int samples, int bits_per_sample, int channels, int* len) {
-  if(!(bits_per_sample == 8 || bits_per_sample == 16)) {
+void*
+sinewave(float amplitude, float frequency, int samples, int bits_per_sample, int channels, int* len)
+{
+  if(!(bits_per_sample == 8 || bits_per_sample == 16))
+  {
     *len = 0;
     return NULL;
   }
@@ -59,16 +64,22 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
   void* data = malloc((bits_per_sample / 8) * channels * samples);
   *len = (bits_per_sample / 8) * channels * samples;
 
-  for(int i = 0;i < samples;i++) {
+  for(int i = 0;i < samples;i++)
+  {
     float s = amplitude * sin((float)i * (frequency / (float)samples) * 6.28f);
-    if(bits_per_sample == 8) {
+    if(bits_per_sample == 8)
+    {
       char v = (char)(127.0f * s);
-      for(int c = 0;c < channels;c++) {
+      for(int c = 0;c < channels;c++)
+      {
 	((char*)data)[i * channels + c] = v;
       }
-    } else if(bits_per_sample == 16) {
+    } 
+    else if(bits_per_sample == 16)
+    {
       short v = (short)(32767.0f * s);
-      for(int c = 0;c < channels;c++) {
+      for(int c = 0;c < channels;c++)
+      {
 	((short*)data)[i * channels + c] = v;
       }
     }
@@ -76,7 +87,9 @@ void* sinewave(float amplitude, float frequency, int samples, int bits_per_sampl
   return data;
 };
 
-int main(int argc, char** argv) {
+int
+main(int argc, char** argv)
+{
   OPEN_LOGF("log.txt", "", 0);
 
   char clean_line[SW + 1];
@@ -88,8 +101,9 @@ int main(int argc, char** argv) {
   HWND window_handle = GetForegroundWindow();
 
   // Create screen with dimensions [SW, SH]
-  Screen screen;
-  if(create_screen(&screen, SW, SH)) {
+  struct Screen screen;
+  if(create_screen(&screen, SW, SH))
+  {
     printf("Failed to create screen.\n");
     return 1;
   }
@@ -98,8 +112,14 @@ int main(int argc, char** argv) {
   PRINT_LOADING_LINE("Loading items");
   FAKE_DELAY();
 
-  ItemList item_list;
-  if(load_items(&item_list, "items/list.txt")) {
+  // Create map
+  struct Map map;
+  create_map(&map, SW, SH - 2);
+  load_map(&map, "res/map"); // Load map from map file
+
+  struct ItemList item_list;
+  if(load_items(&item_list, "items/list.txt"))
+  {
     printf("Failed to load item list!\n");
     return 1;
   }
@@ -107,17 +127,27 @@ int main(int argc, char** argv) {
   PRINT_LOADING_LINE("Initializing player");
   FAKE_DELAY();
 
-  Player player;
-  init_dialog(&player.dialog);
-  create_inventory(&player.inventory, &item_list);
+  struct Inventory inventory;
+  create_inventory(&inventory, &item_list);
 
-  for(int i = 0;i < item_list.n_items;i++) {
-    inventory_add_items(&player.inventory, i, 1);
-  }
+  inventory_add_items(&inventory, 0, 100);
 
-  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Iron Sword"), 1);
-  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Fire Sword"), 1);
-  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Healing Potion"), 1);
+  struct Status status;
+  init_status(&status, 25, 2500, 2500);
+
+  struct DialogSystem dialog;
+  init_dialog(&dialog);
+
+  struct UICallbackData ui_callback_data;
+  ui_callback_data.status = &status;
+  ui_callback_data.inventory = &inventory;
+  ui_callback_data.dialog = &dialog;
+
+  struct MapInteractionData map_interact;
+  map_interact.map = &map;
+  map_interact.dialog = &dialog;
+  map_interact.status = &status;
+  map_interact.inventory = &inventory;
 
   load_permutation("perlin_seed"); // Perlin noise seed
 
@@ -127,8 +157,9 @@ int main(int argc, char** argv) {
   FAKE_DELAY();
 
   // Create audio output device
-  AudioODevice output_device;
-  if(create_output_device(&output_device, 8, 4096, 2, 44100, 16)) {  // Buffers, buffer_size, Channels, samples, bits_per_sample
+  struct AudioODevice output_device;
+  if(create_output_device(&output_device, 8, 4096, 2, 44100, 16)) // Buffers, buffer_size, Channels, samples, bits_per_sample
+  {  
     printf("Failed to create audio device.\n");
     return 1;
   }
@@ -137,8 +168,9 @@ int main(int argc, char** argv) {
   FAKE_DELAY();
 
   // Load audio file hurt.raw
-  AudioData hurt;
-  if(load_audio_data_from_file(&hurt, "Hurt.raw")) {
+  struct AudioData hurt;
+  if(load_audio_data_from_file(&hurt, "Hurt.raw"))
+  {
     printf("Failed to load audiofile: 'Hurt.raw'\n");
     return 1;
   }
@@ -147,15 +179,17 @@ int main(int argc, char** argv) {
   FAKE_DELAY();
 
   // Load background music from wav file
-  AudioData music;
-  if(load_audio_data_from_ogg(&music, "res/tent_rain.ogg")) {
+  struct AudioData music;
+  if(load_audio_data_from_ogg(&music, "res/tent_rain.ogg"))
+  {
     printf("Failed to load background music.\n");
     return 1;
   }
 
   // Create mixer for output device
-  AudioMixer mixer;
-  if(create_mixer_for_device(&mixer, &output_device)) {
+  struct AudioMixer mixer;
+  if(create_mixer_for_device(&mixer, &output_device))
+  {
     printf("Failed to create audio mixer.\n");
     return 1;
   }
@@ -172,35 +206,27 @@ int main(int argc, char** argv) {
   memset(line_buffer, ' ', SW);
   line_buffer[SW] = 0;
 
-  // Create map
-  Map map;
-  create_map(&map, SW, SH - 2);
-  load_map(&map, "res/map"); // Load map from map file
-
   // Movement cooldown
   float can_move = 0.0f;
 
   // Coordinates
   int px = map.spawn_x, py = map.spawn_y; // Player coordinates
 
-  // Player status
-  init_status(&player.status, 25, 2500, 2500);
-
   PRINT_LOADING_LINE("Setting up the UI");
   FAKE_DELAY();
 
-  UISystem ui_system;
+  struct UISystem ui_system;
   create_ui(&ui_system, &screen);
 
-  UIPanel status_panel;
-  create_ui_panel(&status_panel, 0, 0, CSW, CSH, BG_BLACK, FG_WHITE);
-  set_margin_ui_panel(&status_panel, 2, 1);
-  set_callback_ui_panel(&status_panel, (void*)&player, status_screen_callback);
+  struct UIPanel status_panel;
+  create_ui_panel(&status_panel, 0, 0, CSW, CSH, BG_BLACK, BG_WHITE, FG_WHITE);
+  set_margin_ui_panel(&status_panel, 0, 0);
+  set_callback_ui_panel(&status_panel, (void*)&ui_callback_data, status_screen_callback);
 
-  UIPanel dialog_panel;
-  create_ui_panel(&dialog_panel, 0, 0, 0, 0, BG_BLACK, FG_WHITE);
+  struct UIPanel dialog_panel;
+  create_ui_panel(&dialog_panel, 0, 0, 0, 0, BG_BLACK, BG_WHITE, FG_WHITE);
   set_margin_ui_panel(&dialog_panel, 1, 1);
-  set_callback_ui_panel(&dialog_panel, (void*)&player.dialog, dialog_callback);
+  set_callback_ui_panel(&dialog_panel, (void*)&ui_callback_data, dialog_callback);
 
   // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
@@ -209,7 +235,7 @@ int main(int argc, char** argv) {
   int show_character_sheet = 0;
   int show_inventory = 0;
   int inventory_scroll = 0;
-  int selected_item = inventory_get_next_item(&player.inventory, -1);
+  int selected_item = inventory_get_next_item(&inventory, -1);
 
   // Input flags so they only trigger once when pressed
   int space_last = 0, c_last = 0, i_last = 0, r_last = 0;
@@ -220,7 +246,7 @@ int main(int argc, char** argv) {
   int d_x = 0, d_y = 0;
 
   // Delta time
-  Clock runtime_clock;
+  struct Clock runtime_clock;
   start_clock(&runtime_clock);
   reset_clock(&runtime_clock);
 
@@ -234,7 +260,8 @@ int main(int argc, char** argv) {
   PRINT_LOADING_LINE("Finalizing");
   FAKE_DELAY();
 
-  while(1) {
+  while(1)
+  {
     // Current runtime count in seconds
     dt = get_clock_delta_s(&runtime_clock);
     total_time += dt;
@@ -242,15 +269,18 @@ int main(int argc, char** argv) {
 
 #if AUDIO_DISABLE == 0
     // If there is a free audio buffer available
-    if(output_device.buffers_available > 0) {
+    if(output_device.buffers_available > 0)
+    {
        // Prepare mixer to receive data (clear last packet data)
       prepare_mixer(&mixer);
       // Should the hurt audio play (This should be later moved into its' own struct)
-      if(play_hurt) {
+      if(play_hurt)
+      {
 	// Mix the hurt audio clip to the current mix
  	mix_audio(&mixer, &hurt, 0.2f);
 	// If clip has ended, stop playing it and set the current position to start
-	if(hurt.current_position >= hurt.data_size) {
+	if(hurt.current_position >= hurt.data_size)
+	{
 	  play_hurt = 0;
 	  reset_audio_position(&hurt);
 	}
@@ -258,7 +288,8 @@ int main(int argc, char** argv) {
 
       // Play background music 'on loop'
       mix_audio(&mixer, &music, master_vol);
-      if(has_ended(&music)) {
+      if(has_ended(&music))
+      {
 	reset_audio_position(&music);
       }
 
@@ -270,42 +301,50 @@ int main(int argc, char** argv) {
     // If the window is not focused, don't bother updating
     if(window_handle != GetForegroundWindow()) continue;
     // If the player has died
-    if(player.status.hp <= 0) {
+    if(status.hp <= 0)
+    {
       print_string(&screen, "YOU DIED", FG_WHITE | BG_BLACK, SW / 2, SH / 2, ALIGN_CENTER);
       print_string(&screen, "Press escape to exit.", FG_WHITE | BG_BLACK, SW / 2, SH / 2 + 1, ALIGN_CENTER);
       print_console(&screen);
-      if(GetKeyState(VK_ESCAPE) & 0x8000) {
+      if(GetKeyState(VK_ESCAPE) & 0x8000)
+      {
 	break;
       }
       continue;
     };
 
-    if(can_move > 0.0f) {
+    if(can_move > 0.0f)
+    {
       can_move -= dt;
     }
 
-    if(GetKeyState(VK_ESCAPE) & 0x8000) {
+    if(GetKeyState(VK_ESCAPE) & 0x8000)
+    {
       break;
     }
 
     // Volume up (Plus key, max 1.0f)
-    if(GetKeyState(WKEY_ADD) & 0x8000 && add_last == 0) {
+    if(GetKeyState(WKEY_ADD) & 0x8000 && add_last == 0)
+    {
       master_vol = min(master_vol + 0.1f, 1.0f);
     } add_last = GetKeyState(WKEY_ADD) & 0x8000;
 
-    if(GetKeyState(WKEY_SUB) & 0x8000 && sub_last == 0) {
+    if(GetKeyState(WKEY_SUB) & 0x8000 && sub_last == 0)
+    {
       master_vol = max(master_vol - 0.1f, 0.0f);
     } sub_last = GetKeyState(WKEY_SUB) & 0x8000;
 
     // Toggle inventory (Press I)
-    if(GetKeyState(WKEY_I) & 0x8000 && i_last == 0) {
+    if(GetKeyState(WKEY_I) & 0x8000 && i_last == 0)
+    {
       show_inventory = ~show_inventory & 1;
       should_render = 1;
       show_character_sheet = 0;
     } i_last = GetKeyState(WKEY_I) & 0x8000;
     
     // Toggle character sheet (Press C)
-    if(GetKeyState(WKEY_C) & 0x8000 && c_last == 0) {
+    if(GetKeyState(WKEY_C) & 0x8000 && c_last == 0)
+    {
       show_character_sheet = ~show_character_sheet & 1;
       should_render = 1;
       show_inventory = 0;
@@ -321,86 +360,155 @@ int main(int argc, char** argv) {
     } r_last = GetKeyState(WKEY_R) & 0x8000;
 
     // ARROW KEYS
-    if(GetKeyState(VK_UP) & 0x8000 && up_last == 0) {
+    if(GetKeyState(VK_UP) & 0x8000 && up_last == 0)
+    {
       // Inventory item selection up
-      if(show_inventory) {
-	int prev = inventory_get_previous_item(&player.inventory, selected_item);
-	if(prev != -1) {
+      if(show_inventory)
+      {
+	int prev = inventory_get_previous_item(&inventory, selected_item);
+	if(prev != -1)
+	{
 	  selected_item = prev;
 	}
-      } else if(player.dialog.active > 0) {
-	if(player.dialog.active > 1) {
-	  player.dialog.active--;
+      }
+      else if(dialog.active > 0)
+      {
+	if(dialog.active > 1)
+	{
+	  dialog.active--;
 	}
-      } else { // Interact with map (UP of player)
-	interact_with_entity(&map, px, py - 1, &player);
+      }
+      else
+      { // Interact with map (UP of player)
+	interact_with_entity(&map_interact, px, py - 1);
       }
       should_render = 1;
     } up_last = GetKeyState(VK_UP) & 0x8000;
 
-    if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0) {
+    if(GetKeyState(VK_DOWN) & 0x8000 && down_last == 0)
+    {
       // Inventory item selection down
-      if(show_inventory) {
-	int next = inventory_get_next_item(&player.inventory, selected_item);
-	if(next != -1) {
+      if(show_inventory)
+      {
+	int next = inventory_get_next_item(&inventory, selected_item);
+	if(next != -1)
+	{
 	  selected_item = next;
 	}
-      } else if(player.dialog.active > 0) {
-	if(player.dialog.active < player.dialog.n_options) {
-	  player.dialog.active++;
+      }
+      else if(dialog.active > 0)
+      {
+	if(dialog.active < dialog.n_options)
+	{
+	  dialog.active++;
 	}
-      } else { // Interact with map (DOWN of player)
-	interact_with_entity(&map, px, py + 1, &player);
+      }
+      else
+      { // Interact with map (DOWN of player)
+	interact_with_entity(&map_interact, px, py + 1);
       }
       should_render = 1;
     } down_last = GetKeyState(VK_DOWN) & 0x8000;
 
-    if(GetKeyState(VK_LEFT) & 0x8000 && left_last == 0) {
-      if(show_inventory) {
-      } else { // Interact with map (LEFT of player)
-		interact_with_entity(&map, px - 1, py, &player);
+    if(GetKeyState(VK_LEFT) & 0x8000 && left_last == 0)
+    {
+      if(show_inventory)
+      {
+      }
+      else // Interact with map (LEFT of player)
+      {
+	interact_with_entity(&map_interact, px - 1, py);
       }
       should_render = 1;
     } left_last = GetKeyState(VK_LEFT) & 0x8000;
 
-    if(GetKeyState(VK_RIGHT) & 0x8000 && right_last == 0) {
-      if(show_inventory) {
+    if(GetKeyState(VK_RIGHT) & 0x8000 && right_last == 0)
+    {
+      if(show_inventory)
+      {
 	// Pressing right (Using items)
-	Item item = item_list.items[selected_item];
-	if(use_item_for_status(&item, &player.status)) {
-	  if(inventory_take_items(&player.inventory, selected_item, 1) == 0) {
-	    selected_item = inventory_get_next_item(&player.inventory, selected_item);
+	struct Item item = item_list.items[selected_item];
+	if(use_item_for_status(&item, &status))
+	{
+	  if(inventory_take_items(&inventory, selected_item, 1) == 0)
+	  {
+	    selected_item = inventory_get_next_item(&inventory, selected_item);
 	  }
-	} else if(use_item_for_equipment(&item, &player.inventory)) {
-	
 	}
-      } else if(player.dialog.active > 0) {
-	player.dialog.active = 0;
-	free_dialog(&player.dialog);
-      } else { // Interact with map (RIGHT of player)
-	interact_with_entity(&map, px + 1, py, &player);
+	else if(use_item_for_equipment(&item, &inventory))
+	{
+	}
+      }
+      else if(dialog.active > 0)
+      {
+	int selected = dialog.active - 1; // Index of selection
+	int meta = dialog.options_ptr[selected]; // What dialog minor to open next, or close (-1)
+	PRINT_LOG("Chosen option: %d: %s", meta, dialog.options[selected]);
+
+	if(meta & DIAG_MODE_ADVANCE)
+	{
+	  meta &= ~DIAG_MODE_ADVANCE;
+	  PRINT_LOG("Going to %d next!\n", meta);
+	  free_dialog(&dialog); // We always have to free the dialog
+	  if(meta < 0) // Since how binary works, meta will be < 0 if advancing
+	  {
+	    // Dialog not active anymore
+	    dialog.active = 0;
+	  }
+	  else
+	  {
+	    // Load next dialog
+	    open_dialog(&dialog, &inventory, dialog.major, meta);
+	    dialog.active = 1;
+	  }
+	}
+	else if(meta & DIAG_MODE_PURCHASE)
+	{
+	  // Try to purchase item
+	  int item_index = dialog.options_ptr[selected] & ~DIAG_MODE_PURCHASE;
+	  struct Item *buy_item = &item_list.items[item_index];
+	  if(inventory_take_items(&inventory, 0, buy_item->price) >= 0)
+	  {
+	    // Give items
+	    inventory_add_items(&inventory, item_index, 1);
+
+	    // Reload dialog
+	    reload_dialog(&dialog, &inventory);
+
+	    // Set render flag
+	    should_render = 1;
+	  }
+	}
+      }
+      else // Interact with map (RIGHT of player)
+      { 
+	interact_with_entity(&map_interact, px + 1, py);
       }
       should_render = 1;
     } right_last = GetKeyState(VK_RIGHT) & 0x8000;
 
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
-    int talking = player.dialog.active;
+    int talking = dialog.active;
 
-    if(GetKeyState(0x57) & 0x8000 && can_move <= 0.0f && talking == 0) {
+    if(GetKeyState(0x57) & 0x8000 && can_move <= 0.0f && talking == 0)
+    {
       d_y = -1; // Move up
     }
-    if(GetKeyState(0x41) & 0x8000 && can_move <= 0.0f && talking == 0) {
+    if(GetKeyState(0x41) & 0x8000 && can_move <= 0.0f && talking == 0)
+    {
       d_x = -1; // Move left
     }
-    if(GetKeyState(0x53) & 0x8000 && can_move <= 0.0f && talking == 0) {
+    if(GetKeyState(0x53) & 0x8000 && can_move <= 0.0f && talking == 0)
+    {
       d_y = 1; // Move down
     }
-    if(GetKeyState(0x44) & 0x8000 && can_move <= 0.0f && talking == 0) {
+    if(GetKeyState(0x44) & 0x8000 && can_move <= 0.0f && talking == 0)
+    {
       d_x = 1; // Move right
     }
 
-    Status env_status = { 0 };
+    struct Status env_status = { 0 };
     // Moving
     {
       if(d_x != 0 || d_y != 0)
@@ -424,9 +532,10 @@ int main(int argc, char** argv) {
       if(d_x != 0 || d_y != 0) should_tick = 1;
 
 
-      MapEntity* entity = get_entity(&map, px, py);
-      if(entity->tile == ENTITY_MONEY) {
-	inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
+      struct MapEntity* entity = get_entity(&map, px, py);
+      if(entity->tile == ENTITY_MONEY)
+      {
+	inventory_add_items(&inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
 	set_entity(&map, px, py, ENTITY_UNDEF, 0);
       }
 
@@ -435,26 +544,29 @@ int main(int argc, char** argv) {
 
     d_x = d_y = 0;
 
-    if(should_render | should_tick) {
+    if(should_render | should_tick)
+    {
 
-      if(should_tick) {
+      if(should_tick)
+      {
 	reset_entities(&map);
 	update_entities(&map);
-	apply_status(env_status, &player.status); // Apply environment status to player
+	apply_status(env_status, &status); // Apply environment status to player
 	/*
 	if(mode == MODE_WORLD) {
 	  int wetness = get_tile_at(&map, map.width / 2, map.height / 2) == TILE_WATER ? 5 : 0;
 	  if(wetness > 0) {
-	    player.status.wet += wetness;
+	    status.wet += wetness;
 	  } else {
-	    if(player.status.temp > 0) {
-	      if(player.status.wet > 0) player.status.wet -= 1;
+	    if(status.temp > 0) {
+	      if(status.wet > 0) status.wet -= 1;
 	    }
 	  }
 	}
 	*/
 
-	if(tick_status(&player.status)) { // If player took damage
+	if(tick_status(&status)) // If player took damage
+	{ 
 	  play_hurt = 1;
 	}
 
@@ -479,7 +591,8 @@ int main(int argc, char** argv) {
 	print_map(&map, &screen);
 	print_string(&screen, "@", FG_BLUE | get_background_of_map_at(&map, px, py), px, py, ALIGN_LEFT);
 
-	if(get_tile_at(&map, 0, 0) == TILE_MOUNTAIN) {
+	if(get_tile_at(&map, 0, 0) == TILE_MOUNTAIN)
+	{
 	  set_entity(&map, px, py, ENTITY_WALKED_SNOW, 0);
 	}
       //}
@@ -505,7 +618,7 @@ int main(int argc, char** argv) {
       */
 
       // Print current health for faster seeing than character sheet
-      snprintf(line_buffer, SW, "HP: %d/%d", player.status.hp, player.status.max_hp);
+      snprintf(line_buffer, SW, "HP: %d/%d", status.hp, status.max_hp);
       print_string(&screen, line_buffer, FG_LIGHT_RED, SW, SH - 2, ALIGN_RIGHT);
 
       // Print all the status effects, colored
@@ -517,31 +630,38 @@ int main(int argc, char** argv) {
 
       printed += print_string(&screen, "Status: [", FG_WHITE, 0, SH - 1, ALIGN_LEFT);
 
-      STATUS_LINE_PRINT(player.status.wet > 0 ? FG_TURQUOISE : FG_YELLOW, SH - 1, "%s", player.status.wet > 0 ? "Wet" : "Dry");
+      STATUS_LINE_PRINT(status.wet > 0 ? FG_TURQUOISE : FG_YELLOW, SH - 1, "%s", status.wet > 0 ? "Wet" : "Dry");
 
-      if(player.status.hypothermia <= 0 && player.status.heat_stroke <= 0) {
-	STATUS_LINE_PRINT(player.status.temp > 30 ? FG_RED : player.status.temp < 0 ? FG_CYAN : FG_WHITE, SH - 1, "%s", player.status.temp < 0 ? " Cold" : player.status.temp > 30 ? " Hot" : "");
-      } else if(player.status.hypothermia > 0) {
+      if(status.hypothermia <= 0 && status.heat_stroke <= 0)
+      {
+	STATUS_LINE_PRINT(status.temp > 30 ? FG_RED : status.temp < 0 ? FG_CYAN : FG_WHITE, SH - 1, "%s", status.temp < 0 ? " Cold" : status.temp > 30 ? " Hot" : "");
+      }
+      else if(status.hypothermia > 0)
+      {
 	STATUS_LINE_PRINT(FG_CYAN, SH - 1, " Hypothermia", 0);
-      } else if(player.status.heat_stroke > 0) {
+      }
+      else if(status.heat_stroke > 0)
+      {
 	STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, " Heat Stroke", 0);
       }
 
-      STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, "%s", player.status.bleeding > 10 ? " Profusely Bleeding" : player.status.bleeding > 0 ? " Bleeding" : "");
+      STATUS_LINE_PRINT(FG_LIGHT_RED, SH - 1, "%s", status.bleeding > 10 ? " Profusely Bleeding" : status.bleeding > 0 ? " Bleeding" : "");
 
-      STATUS_LINE_PRINT(FG_RED, SH - 1, "%s", player.status.infected > 0 ? " Infected" : "");
+      STATUS_LINE_PRINT(FG_RED, SH - 1, "%s", status.infected > 0 ? " Infected" : "");
 
       print_string(&screen, "]", FG_WHITE, printed, SH - 1, ALIGN_LEFT);
 
       // Temperature
-      snprintf(line_buffer, SW, "Temp: %d*C", player.status.temp);
-      print_string(&screen, line_buffer, get_temp_attributes(player.status.temp), SW, SH - 1, ALIGN_RIGHT);
+      snprintf(line_buffer, SW, "Temp: %d*C", status.temp);
+      print_string(&screen, line_buffer, get_temp_attributes(status.temp), SW, SH - 1, ALIGN_RIGHT);
 
       // Character sheet
-      if(show_character_sheet) {
+      if(show_character_sheet)
+      {
 	int x = 0;
 	status_panel.text_alignment = ALIGN_LEFT;
-	if(px < SW / 2 + 1) {
+	if(px < SW / 2 + 1)
+	{
 	  x = SW - CSW;
 	  status_panel.text_alignment = ALIGN_RIGHT;
 	}
@@ -550,10 +670,12 @@ int main(int argc, char** argv) {
       }
 
       // Inventory
-      if(show_inventory) {
+      if(show_inventory)
+      {
 	// If the inventory should be shown on the left side of the screen or the right side.
 	int x = 0;
-	if(px < SW / 2 + 1) {
+	if(px < SW / 2 + 1)
+	{
 	  x = SW - CSW;
 	}
 
@@ -561,7 +683,8 @@ int main(int argc, char** argv) {
 	char c_buffer[CSW + 1];
 	c_buffer[CSW] = 0;
 	memset(c_buffer, ' ', CSW);
-	for(int y = 0;y < CSH; y++) {
+	for(int y = 0;y < CSH; y++)
+	{
 	  print_string(&screen, c_buffer, FG_WHITE, x, y, ALIGN_LEFT);
 	}
 
@@ -572,15 +695,16 @@ int main(int argc, char** argv) {
 	print_string(&screen, "INVENTORY", FG_WHITE, x + CSW / 2, 0, ALIGN_CENTER); // Sheet title
 
 	int line = 2; // Current line we are printing to 
-	for(int i = inventory_scroll; i < item_list.n_items; i++) { // For each item available
-	  if(player.inventory.items[i] > 0) { // If the player has any
-
+	for(int i = inventory_scroll; i < item_list.n_items; i++) // For each item available
+	{ 
+	  if(inventory.items[i] > 0) // If the player has any
+	  {
 	    int can_equip = is_item_equipable(item_list.items[i].type);
 
-	    int equipped = (i == player.inventory.equipped_items[EQUIP_SLOT_WEAPON])
-	      | (i == player.inventory.equipped_items[EQUIP_SLOT_HEAD])
-	      | (i == player.inventory.equipped_items[EQUIP_SLOT_BODY])
-	      | (i == player.inventory.equipped_items[EQUIP_SLOT_LEGS]);
+	    int equipped = (i == inventory.equipped_items[EQUIP_SLOT_WEAPON])
+	      | (i == inventory.equipped_items[EQUIP_SLOT_HEAD])
+	      | (i == inventory.equipped_items[EQUIP_SLOT_BODY])
+	      | (i == inventory.equipped_items[EQUIP_SLOT_LEGS]);
 
 	    const char* i_name = strlen(item_list.items[i].name) <= 20 ? item_list.items[i].name : item_list.items[i].short_name;
 
@@ -590,27 +714,33 @@ int main(int argc, char** argv) {
 		       can_equip ? "] " : "",
 		       i_name,
 		       CSW - strlen(i_name) - 7,
-		       player.inventory.items[i]);
+		       inventory.items[i]);
 	    line++; // Advance on lines
 	    if(line >= CSH - 2) break; // Don't render over the sheet
 	  }
 	}
 	
-	for(int y = 0;y < CSH;y++) {
-	  int color = inventory_unique_nth_count(&player.inventory, selected_item) - inventory_scroll == y - 2 ? FG_LIGHT_RED : FG_WHITE;
-	  if(x == 0) {
+	for(int y = 0;y < CSH;y++)
+	{
+	  int color = inventory_unique_nth_count(&inventory, selected_item) - inventory_scroll == y - 2 ? FG_LIGHT_RED : FG_WHITE;
+	  if(x == 0)
+	  {
 	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
-	  } else {
+	  }
+	  else
+	  {
 	    print_string(&screen, stat_buffer + y * (CSW + 1), color, x + 1, y, ALIGN_LEFT);
 	  }
 	}
       }
 
-      if(player.dialog.active) {
-	int w = player.dialog.line_length + 2;
-	int h = player.dialog.n_lines + player.dialog.n_options + 3;
+      if(dialog.active)
+      {
+	int w = dialog.line_length + 2;
+	int h = dialog.n_lines + dialog.n_options + 1;
 	resize_ui_panel(&dialog_panel, SW / 2 - w / 2, SH / 2 - h / 2, w, h);
-	if(render_ui_panel(&ui_system, &dialog_panel, NULL)) {
+	if(render_ui_panel(&ui_system, &dialog_panel, NULL))
+	{
 	  PRINT_LOG("Failed to render dialog panel!\n", 0);
 	}
       }
@@ -632,7 +762,7 @@ int main(int argc, char** argv) {
   free_output_device(&output_device);
 #endif
 
-  free_inventory(&player.inventory);
+  free_inventory(&inventory);
   free_items(&item_list);
 
   return 0;

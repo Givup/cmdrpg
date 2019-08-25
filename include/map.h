@@ -26,52 +26,84 @@
 #define ENTITY_COW         8
 #define ENTITY_NPC         9
 
-typedef struct {
+struct BiomeEntityPool {
   int pool_size;
   int* pool;
-} BiomeEntityPool;
+};
 
-typedef struct {
+struct MapEntity {
   int tile;
   int metadata;
-} MapEntity;
+};
 
-typedef struct {
+struct Map {
   int width, height;
   int spawn_x, spawn_y;
   int* tiles;
-  MapEntity* entities;
+  struct MapEntity* entities;
 
   int pool_count;
-  BiomeEntityPool* biome_pools;
-} Map;
+  struct BiomeEntityPool* biome_pools;
+};
 
-extern const char* get_tile_str(int tile);
-extern WORD get_tile_attributes(int tile);
-extern void print_map(Map*, Screen*);
+extern const char*
+get_tile_str(int tile);
 
-extern void create_map(Map*, int, int);
-extern void free_map(Map*);
+extern WORD
+get_tile_attributes(int tile);
 
-extern int get_background_of_map_at(Map*, int, int);
-extern int get_foreground_of_map_at(Map*, int, int);
+extern void
+print_map(struct Map*, struct Screen*);
 
-extern const char* get_biome_name(int);
-extern int get_tile_at(Map*, int, int);
-extern int set_tile_at(Map*, int, int, int);
+extern void
+create_map(struct Map*, int, int);
 
-extern int get_tile_traverse_penalty(Map*, int);
+extern void
+free_map(struct Map*);
 
-extern void set_entity(Map*, int, int, int, int);
-extern MapEntity* get_entity(Map*, int, int);
-extern void update_entities(Map*);
-extern void reset_entities(Map*);
-extern void clear_entities(Map*);
+extern int
+get_background_of_map_at(struct Map*, int, int);
 
-extern void load_map(Map*, const char*);
-extern int generate_biome_at(Map*, int, int);
+extern int
+get_foreground_of_map_at(struct Map*, int, int);
 
-extern int can_move_to(Map*, int, int);
-extern void try_move_to(Map*, int, int, Status*);
+extern const char*
+get_biome_name(int);
+
+extern int
+get_tile_at(struct Map*, int, int);
+
+extern int
+set_tile_at(struct Map*, int, int, int);
+
+extern int
+get_tile_traverse_penalty(struct Map*, int);
+
+extern void
+set_entity(struct Map*, int, int, int, int);
+
+extern struct
+MapEntity* get_entity(struct Map*, int, int);
+
+extern void
+update_entities(struct Map*);
+
+extern void
+reset_entities(struct Map*);
+
+extern void
+clear_entities(struct Map*);
+
+extern void
+load_map(struct Map*, const char*);
+
+extern int
+generate_biome_at(struct Map*, int, int);
+
+extern int
+can_move_to(struct Map*, int, int);
+
+extern void
+try_move_to(struct Map*, int, int, struct Status*);
 
 #endif

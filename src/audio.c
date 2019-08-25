@@ -1,6 +1,5 @@
 #include "audio.h"
 
-
 #include "stb_vorbis.c"
 
 #include <stdio.h>
@@ -9,10 +8,17 @@
   CALLBACK FUNCTION
 */
 
-void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-  if(uMsg == WOM_OPEN) {
-  } else if(uMsg == WOM_CLOSE) {
-  } else if(uMsg == WOM_DONE) {
+void CALLBACK
+waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+{
+  if(uMsg == WOM_OPEN)
+  {
+  }
+  else if(uMsg == WOM_CLOSE)
+  {
+  }
+  else if(uMsg == WOM_DONE)
+  {
     // WAVEHDR* hdr = (WAVEHDR*)dwParam1;
     AudioODevice* device = (AudioODevice*)dwInstance;
     EnterCriticalSection(&device->critical_section);
@@ -29,9 +35,12 @@ void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_P
   AUDIO DATA
  */
 
-int load_file_contents(const char* filename, char** buffer, int* filesize) {
+int
+load_file_contents(const char* filename, char** buffer, int* filesize)
+{
   FILE* f = fopen(filename, "rb");
-  if(f == NULL) {
+  if(f == NULL)
+  {
     printf("Failed to open file '%s'.\n", filename);
     return 1;
   }
@@ -50,12 +59,15 @@ int load_file_contents(const char* filename, char** buffer, int* filesize) {
   return 0;
 };
 
-int load_audio_data_from_ogg(AudioData* audio, const char* filename) {
+int
+load_audio_data_from_ogg(AudioData* audio, const char* filename) 
+{
   short* decoded;
   int channels, sample_rate;
   int len = stb_vorbis_decode_filename(filename, &channels, &sample_rate, &decoded);
 
-  if(len <= 0) {
+  if(len <= 0) 
+  {
     printf(".ogg file '%s' sample count was invalid.\n", filename);
     return 1;
   }
@@ -71,12 +83,15 @@ int load_audio_data_from_ogg(AudioData* audio, const char* filename) {
   return 0;
 };
 
-int load_audio_data_from_file(AudioData* audio, const char* filename) {
+int
+load_audio_data_from_file(AudioData* audio, const char* filename)
+{
   
   char* contents;
   int file_size;
 
-  if(load_file_contents(filename, &contents, &file_size)) {
+  if(load_file_contents(filename, &contents, &file_size))
+  {
     return 1;
   }
 
@@ -91,7 +106,9 @@ int load_audio_data_from_file(AudioData* audio, const char* filename) {
   return 0;
 };
 
-int load_audio_data_from_data(AudioData* audio, void* data, int data_size) {
+int
+load_audio_data_from_data(AudioData* audio, void* data, int data_size) 
+{
   audio->data = (char*)malloc(data_size);
   memcpy(audio->data, data, data_size);
   audio->data_size = data_size;
@@ -100,25 +117,34 @@ int load_audio_data_from_data(AudioData* audio, void* data, int data_size) {
 };
 
 
-int free_audio_data(AudioData* audio) {
-  if(audio->data_size) {
+int
+free_audio_data(AudioData* audio)
+{
+  if(audio->data_size)
+  {
     free(audio->data);
     audio->data_size = 0;
   }
   return 0;
 };
 
-int has_ended(AudioData* audio) {
+int
+has_ended(AudioData* audio)
+{
   return audio->current_position >= audio->data_size ? 1 : 0;
 }
 
-void reset_audio_position(AudioData* audio) {
+void
+reset_audio_position(AudioData* audio)
+{
   audio->current_position = 0;
 };
 /*
   AUDIO OUTPUT BUFFER
  */
-int init_audio_output_buffer(AudioOBuffer* buffer, int buffer_size) {
+int
+init_audio_output_buffer(AudioOBuffer* buffer, int buffer_size)
+{
   WAVEHDR hdr = { 0 };
   hdr.lpData = (void*)0;
   hdr.dwBufferLength = buffer_size;
@@ -130,14 +156,18 @@ int init_audio_output_buffer(AudioOBuffer* buffer, int buffer_size) {
   return 0;
 };
 
-int free_audio_output_buffer(void* device_ptr, AudioOBuffer* buffer) {
+int
+free_audio_output_buffer(void* device_ptr, AudioOBuffer* buffer)
+{
   AudioODevice* device = (AudioODevice*)device_ptr;
   waveOutUnprepareHeader(device->device, &buffer->header, sizeof(WAVEHDR));
   free(buffer->data);
   return 0;
 };
 
-void write_buffer(AudioOBuffer* buffer, void* data, int byte_count) {
+void
+write_buffer(AudioOBuffer* buffer, void* data, int byte_count)
+{
   memcpy((void*)buffer->data, (void*)data, byte_count);
   WAVEHDR* hdr = &buffer->header;
   hdr->lpData = (void*)buffer->data;
@@ -153,7 +183,9 @@ void write_buffer(AudioOBuffer* buffer, void* data, int byte_count) {
 /*
   AUDIO OUTPUT DEVICE
  */
-int create_output_device(AudioODevice* device, int buffers, int buffer_size, int channels, int samples, int bits_per_sample) {
+int
+create_output_device(AudioODevice* device, int buffers, int buffer_size, int channels, int samples, int bits_per_sample)
+{
   WAVEFORMATEX wave_format = { 0 };
   wave_format.wFormatTag = WAVE_FORMAT_PCM; // wFormatTag
   wave_format.nChannels = channels; // nChannels
@@ -165,7 +197,8 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
 
 
   HWAVEOUT wave_device;
-  if(waveOutOpen(&wave_device, -1, &wave_format, (DWORD_PTR)waveOutProc, (DWORD_PTR)device, CALLBACK_FUNCTION) != MMSYSERR_NOERROR) {
+  if(waveOutOpen(&wave_device, -1, &wave_format, (DWORD_PTR)waveOutProc, (DWORD_PTR)device, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
+  {
     return 1;
   }
   printf("Channel count: %d\n", wave_format.nChannels);
@@ -184,7 +217,8 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
 
   device->n_buffers = buffers;
   device->buffers = (AudioOBuffer*)malloc(sizeof(AudioOBuffer) * buffers);
-  for(int b = 0;b < buffers;b++) {
+  for(int b = 0;b < buffers;b++)
+  {
     init_audio_output_buffer(&device->buffers[b], buffer_size);
   }
   device->buffers_available = buffers;
@@ -192,18 +226,24 @@ int create_output_device(AudioODevice* device, int buffers, int buffer_size, int
   return 0;
 };
 
-int free_output_device(AudioODevice* device) {
+int
+free_output_device(AudioODevice* device)
+{
   waveOutClose(device->device);
   DeleteCriticalSection(&device->critical_section);
-  for(int b = 0;b < device->n_buffers;b++) {
+  for(int b = 0;b < device->n_buffers;b++)
+  {
     free_audio_output_buffer((void*)device, &device->buffers[b]);
   }
   free(device->buffers);
   return 0;
 };
 
-int queue_data_to_output_device(AudioODevice* device, AudioMixer* mixer) {
-  if(device->buffers_available <= 0) {
+int
+queue_data_to_output_device(AudioODevice* device, AudioMixer* mixer)
+{
+  if(device->buffers_available <= 0)
+  {
     printf("No buffers available.\n");
     return 1;
   }
@@ -211,13 +251,15 @@ int queue_data_to_output_device(AudioODevice* device, AudioMixer* mixer) {
   AudioOBuffer* buffer = &device->buffers[mixer->current_buffer];
   write_buffer(buffer, get_current_audio_data(mixer), mixer->mixed_byte_count);
 
-  if(buffer->header.dwFlags & WHDR_PREPARED) {
+  if(buffer->header.dwFlags & WHDR_PREPARED)
+  {
     waveOutUnprepareHeader(device->device, &buffer->header, sizeof(WAVEHDR));
   }
   waveOutPrepareHeader(device->device, &buffer->header, sizeof(WAVEHDR));
 
   MMRESULT write_success = waveOutWrite(device->device, &buffer->header, sizeof(WAVEHDR));
-  if(write_success != MMSYSERR_NOERROR) {
+  if(write_success != MMSYSERR_NOERROR)
+  {
     char err_buffer[256]; 
     waveOutGetErrorText(write_success, err_buffer, 255);
     printf("Failed to write to audio buffer. Error: %s\n", err_buffer);
@@ -227,13 +269,18 @@ int queue_data_to_output_device(AudioODevice* device, AudioMixer* mixer) {
   return 0;
 };
 
-int is_format_supported(WAVEFORMATEX format, UINT device) {
+int
+is_format_supported(WAVEFORMATEX format, UINT device)
+{
   return waveOutOpen(NULL, device, &format, (DWORD_PTR)NULL, 0, WAVE_FORMAT_QUERY ) == MMSYSERR_NOERROR ? 1 : 0;
 };
 
-void enumerate_output_devices(WAVEFORMATEX format) {
+void
+enumerate_output_devices(WAVEFORMATEX format)
+{
   UINT num_devs = waveOutGetNumDevs();
-  for(int i = num_devs - 1; i >= 0; i--) {
+  for(int i = num_devs - 1; i >= 0; i--)
+  {
     WAVEOUTCAPS caps;
     waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
     int support = is_format_supported(format, i);
@@ -246,7 +293,9 @@ void enumerate_output_devices(WAVEFORMATEX format) {
   AUDIO MIXER
  */
 
-int create_mixer_for_device(AudioMixer* mixer, AudioODevice* device) {
+int
+create_mixer_for_device(AudioMixer* mixer, AudioODevice* device)
+{
   mixer->n_buffers = device->n_buffers;
   mixer->mixed_data = (char*)malloc(device->buffer_size * device->n_buffers);
   mixer->data_size = device->buffer_size;
@@ -254,12 +303,16 @@ int create_mixer_for_device(AudioMixer* mixer, AudioODevice* device) {
   return 0;
 };
 
-int free_mixer(AudioMixer* mixer) {
+int
+free_mixer(AudioMixer* mixer)
+{
   free(mixer->mixed_data);
   return 0;
 };
 
-int prepare_mixer(AudioMixer* mixer) {
+int
+prepare_mixer(AudioMixer* mixer)
+{
   mixer->current_buffer = (mixer->current_buffer + 1) % mixer->n_buffers; // Loop around
   int offset = mixer->current_buffer * mixer->data_size;
   memset(((char*)mixer->mixed_data) + offset, 0, mixer->data_size);
@@ -267,17 +320,23 @@ int prepare_mixer(AudioMixer* mixer) {
   return 0;
 };
 
-int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
+int
+mix_audio(AudioMixer* mixer, AudioData* data, float volume)
+{
   int offset = mixer->current_buffer * mixer->data_size;
   int bytes = min(data->data_size - data->current_position, mixer->data_size); // How many bytes should be 'mixed'
 
-  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
-    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
+  if(mixer->desired_format.bits_per_sample == 8) // 8 bits
+  { 
+    for(int i = 0; i < bytes; i++) // 1 byte per value -> char
+    {
       ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * volume);
     }
   }
-  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
-    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
+  else if(mixer->desired_format.bits_per_sample == 16) // 16 bits
+  { 
+    for(int i = 0;i < bytes / 2;i++) // 2 bytes per value -> short
+    { 
       ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * volume);
     }
   }
@@ -288,7 +347,9 @@ int mix_audio(AudioMixer* mixer, AudioData* data, float volume) {
 };
 
 // We assume that the audio data is stereo (2 channels)
-int mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right) {
+int
+mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right)
+{
   if(left < 0) left = -left;
   if(right < 0) right = -right;
 
@@ -297,13 +358,17 @@ int mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right) 
 
   int l_or_r = 0;
 
-  if(mixer->desired_format.bits_per_sample == 8) { // 8 bits
-    for(int i = 0; i < bytes; i++) { // 1 byte per value -> char
+  if(mixer->desired_format.bits_per_sample == 8) // 8 bits
+  { 
+    for(int i = 0; i < bytes; i++) // 1 byte per value -> char
+    { 
       ((char*)mixer->mixed_data)[offset + i] += (char)((float)(((char*)data->data)[data->current_position + i]) * (l_or_r++ % 2 == 0 ? left : right));
     }
   }
-  else if(mixer->desired_format.bits_per_sample == 16) { // 16 bits
-    for(int i = 0;i < bytes / 2;i++) { // 2 bytes per value -> short
+  else if(mixer->desired_format.bits_per_sample == 16) // 16 bits
+  { 
+    for(int i = 0;i < bytes / 2;i++) // 2 bytes per value -> short
+    { 
       ((short*)mixer->mixed_data)[offset / 2 + i] += (short)((float)(((short*)data->data)[data->current_position / 2 + i]) * (l_or_r++ % 2 == 0 ? left : right));
     }
   }
@@ -313,7 +378,9 @@ int mix_audio_tilt(AudioMixer* mixer, AudioData* data, float left, float right) 
   return 0;
 };
 
-void* get_current_audio_data(AudioMixer* mixer) {
+void*
+get_current_audio_data(AudioMixer* mixer)
+{
   int off = mixer->current_buffer * mixer->data_size;
   return (void*)(((char*)mixer->mixed_data) + off);
 };

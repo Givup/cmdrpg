@@ -3,18 +3,19 @@
 
 #include <windows.h>
 
-typedef struct {
+struct Clock {
   LARGE_INTEGER start_time, end_time;
   LARGE_INTEGER frequency;
-} Clock;
+};
 
-void start_clock(Clock* clock) {
+void
+start_clock(struct Clock* clock) {
   QueryPerformanceFrequency(&clock->frequency);
   QueryPerformanceCounter(&clock->start_time);
 };
 
-float get_clock_delta_s(Clock* clock) {
-
+float
+get_clock_delta_s(struct Clock* clock) {
   QueryPerformanceCounter(&clock->end_time); // Get current time
   LARGE_INTEGER elapsed; // Calculate elapsed time between last reset
 
@@ -26,7 +27,8 @@ float get_clock_delta_s(Clock* clock) {
   return (float)elapsed.QuadPart / 1000000.0f;
 };
 
-void reset_clock(Clock* clock) {
+void
+reset_clock(struct Clock* clock) {
   clock->start_time = clock->end_time;
 };
 

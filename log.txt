@@ -1,20 +1,284 @@
-Log opened by: ./src/main.c:80
+Log opened by: ./src/main.c:81
 
 Opening dialogue: dialogue/0/0.dlg
-There are 4 lines and 3 options.
+There are 4 lines and 2 options.
 Lines: 
 	-MERCHANT-
 	Hello there!
 	Would you like to
 	see my wares?
 Options: 
-	Yes
-	No
-	Maybe
-Longest line: 17
+	Yes	NoLongest line: 17
 
-Dialog callback, lines: 9
+Dialog callback, lines: 8
+Chosen option: 257: YesGoing to 1 next!
 
-Dialog callback, lines: 9
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	100 x Gold	BackLongest line: 21
 
-Dialog callback, lines: 9
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	98 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	96 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	94 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	92 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 520: Raw Meat (50) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	42 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 523: Bottle of Water (25) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	17 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 523: Bottle of Water (25) 
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	15 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	13 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	11 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	9 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	7 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	5 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	3 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	1 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 1024: 1 x Gold
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 256: BackGoing to 0 next!
+
+Opening dialogue: dialogue/0/0.dlg
+There are 4 lines and 2 options.
+Lines: 
+	-MERCHANT-
+	Hello there!
+	Would you like to
+	see my wares?
+Options: 
+	Yes	NoLongest line: 17
+
+Dialog callback, lines: 8
+Chosen option: 257: YesGoing to 1 next!
+
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	1 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+Chosen option: 519: Bread (2) 
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 520: Raw Meat (50) 
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 523: Bottle of Water (25) 
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 257: -RESOURCES-Going to 1 next!
+
+Opening dialogue: dialogue/0/1.dlg
+There are 3 lines and 6 options.
+Lines: 
+	-MERCHANT-
+	What would you
+	like to buy?
+Options: 
+	Bread (2) 	Raw Meat (50) 	Bottle of Water (25) 	-RESOURCES-	1 x Gold	BackLongest line: 21
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 1024: 1 x Gold
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+
+Dialog callback, lines: 11
+Chosen option: 256: BackGoing to 0 next!
+
+Opening dialogue: dialogue/0/0.dlg
+There are 4 lines and 2 options.
+Lines: 
+	-MERCHANT-
+	Hello there!
+	Would you like to
+	see my wares?
+Options: 
+	Yes	NoLongest line: 17
+
+Dialog callback, lines: 8
+
+Dialog callback, lines: 8
+Chosen option: -1: NoGoing to -257 next!

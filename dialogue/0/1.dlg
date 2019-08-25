@@ -1,5 +1,10 @@
-Ah, it seems I'm
-all out of stuff!
-What a coincidence!
-
-1:Shame... [-1]
+3 6
+-MERCHANT-
+What would you
+like to buy?
+$Bread
+$Raw Meat
+$Bottle of Water
+.1 -RESOURCES-
+AGold
+.0 Back

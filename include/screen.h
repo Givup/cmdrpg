@@ -39,22 +39,29 @@
 #define ALIGN_CENTER 1
 #define ALIGN_RIGHT  2
 
-typedef struct {
+struct Screen {
   int width, height;
   CHAR_INFO* buffer;
   HANDLE console_handle;
-} Screen;
+};
 
-extern int create_screen(Screen*, int, int);
-extern int free_screen(Screen*);
+extern int
+create_screen(struct Screen*, int, int);
 
-extern void show_cursor(Screen*, BOOL);
+extern int
+free_screen(struct Screen*);
 
-extern int get_alignment_offset(const char*, int);
+extern void
+show_cursor(struct Screen*, BOOL);
 
-// Screen pointer, string, Colors, x, y, alignment
-extern int print_string(Screen*, const char*, WORD, int, int, int);
+extern int
+get_alignment_offset(const char*, int);
 
-extern void print_console(Screen*);
+// struct Screen pointer, string, Colors, x, y, alignment
+extern int
+print_string(struct Screen*, const char*, WORD, int, int, int);
+
+extern void 
+print_console(struct Screen*);
 
 #endif

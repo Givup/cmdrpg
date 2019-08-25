@@ -1,5 +1,6 @@
 17
 
+# 0
 type misc
 name Gold
 short_name Gold
@@ -8,6 +9,7 @@ price 1
 weight 2
 metadata 0
 
+# 1
 type misc
 name Stick
 short_name Stick
@@ -16,6 +18,7 @@ price 0
 weight 25
 metadata 0
 
+# 2
 type weapon
 name Wooden_Sword
 short_name Wooden_Sword
@@ -24,6 +27,7 @@ price 10
 weight 250
 metadata 513
 
+# 3
 type weapon
 name Iron_Sword
 short_name Iron_Sword
@@ -32,6 +36,7 @@ price 100
 weight 2500
 metadata 1281
 
+# 4
 type weapon
 name Fire_Sword
 short_name Fire_Sword
@@ -40,6 +45,7 @@ price 1250
 weight 2500
 metadata 3873
 
+# 5
 type weapon
 name Ice_Mace
 short_name Ice_Mace
@@ -48,6 +54,7 @@ price 1250
 weight 5000
 metadata 3908
 
+# 6
 type weapon
 name Shocking_Pike
 short_name Shocking_Pike
@@ -56,6 +63,7 @@ price 1250
 weight 1500
 metadata 3858
 
+# 7
 type food
 name Bread
 short_name Bread
@@ -64,6 +72,7 @@ price 2
 weight 200
 metadata 250
 
+# 8
 type food
 name Raw_Meat
 short_name R.Meat
@@ -72,6 +81,7 @@ price 50
 weight 1000
 metadata 150
 
+# 9
 type food
 name Cooked_Meat
 short_name C.Meat
@@ -80,6 +90,7 @@ price 500
 weight 900
 metadata 500
 
+# 10
 type heal
 name Healing_Potion
 short_name Healing_Potion
@@ -88,6 +99,7 @@ price 250
 weight 100
 metadata 10
 
+# 11
 type drink
 name Bottle_of_Water
 short_name Bottle_of_Water
@@ -96,6 +108,7 @@ price 25
 weight 500
 metadata 250
 
+# 12
 type drink
 name Cactus_Fruit
 short_name Cactus_Fruit
@@ -104,6 +117,7 @@ price 2
 weight 100
 metadata 25
 
+# 13
 type armor_head
 name Leather_Cap
 short_name Leather_Cap
@@ -112,6 +126,7 @@ price 7
 weight 750
 metadata 321
 
+# 14
 type armor_body
 name Leather_Jacket
 short_name Leather_Jacket
@@ -120,6 +135,7 @@ price 10
 weight 2000
 metadata 833
 
+# 15
 type armor_legs
 name Leather_Boots
 short_name Leather_Boots
@@ -128,6 +144,7 @@ price 3
 weight 1000
 metadata 577
 
+# 16
 type armor_body
 name Iron_Platebody
 short_name Iron_Platebody
