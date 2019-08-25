@@ -87,7 +87,7 @@ int interact_with_entity(Map* map, int x, int y, Player* player) {
 
   case ENTITY_NPC:
     {
-      open_dialog(&player->dialog, 1, 0);
+      open_dialog(&player->dialog, 0, 0);
       return 1;
     };
 

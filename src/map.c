@@ -54,7 +54,7 @@ const char* get_entity_str(int entity, int metadata) {
     case ENTITY_WALKED_SNOW: return "\260";
     case ENTITY_COW: return "M";
 
-    case ENTITY_NPC: return "H";
+    case ENTITY_NPC: return "☺";
 
     case ENTITY_HOUSE:
     {
@@ -123,14 +123,15 @@ void create_biome_pool(Map* map, int tile, int* pool, int pool_count) {
   memcpy(bpool->pool, pool, sizeof(int) * pool_count *  2);
 };
 
-void generate_house(Map* map, int x, int y, int w, int h) {
+int generate_house(Map* map, int x, int y, int w, int h) {
   int empty_space = 3; // How much empty space there needs to be surrounding the house
 
   // If the place we were going to generate house already has one, stop generation
   for(int x0 = x - w - empty_space; x0 <= x + w + empty_space; x0++) {
     for(int y0 = y - h - empty_space; y0 <= y + h + empty_space; y0++) {
-      if(x0 < 0 || x0 >= map->width || y0 < 0 || y0 >= map->height) return;
-      if(map->entities[x0 + y0 * map->width].tile == ENTITY_HOUSE) return;
+      if(x0 < 0 || x0 >= map->width || y0 < 0 || y0 >= map->height) return 0;
+      if(map->entities[x0 + y0 * map->width].tile == ENTITY_HOUSE) return 0;
+      if(map->tiles[x0 + y0 * map->width] == TILE_WATER) return 0;
     }
   }
 
@@ -195,6 +196,23 @@ void generate_house(Map* map, int x, int y, int w, int h) {
 
   // Make door hole
   map->entities[dx + dy * map->width].tile = ENTITY_DOOR;
+
+  // Spawn humans inside?  
+  // Loop through insides
+  int humans_spawned = 0;
+  for(int y0 = y - h + 1; y0 < y + h - 1; y0++)
+  {
+    for(int x0 = x - w + 1; x0 < x + w - 1 && humans_spawned < 3; x0++)
+    {
+      if(randomi(1000) > 900)
+      {
+	set_entity(map, x0, y0, ENTITY_NPC, 0);
+	humans_spawned++;
+      }
+    }
+  }
+
+  return 1;
 };
 
 void create_map(Map* map, int w, int h) {
@@ -393,6 +411,8 @@ void populate_biome(Map* map, int biome_tile) {
 void
 load_map(Map *map, const char *map_file)
 {
+  clear_entities(map);
+
   char tilemap_file[256];
   strcpy(tilemap_file, map_file);
   strcat(tilemap_file, ".tmap");
@@ -449,6 +469,15 @@ load_map(Map *map, const char *map_file)
 
   // Free allocated buffer
   free(buffer);
+
+  int generated = 0;
+  // Generate houses?
+  for(int i = 0; i < 50 && generated < 6; i++)
+  {
+    int x = randomi(map->width), y = randomi(map->height);
+    int w = 2 + randomi(6), h = 2 + randomi(4);
+    generated += generate_house(map, x, y, w, h);
+  }
 };
 
 int generate_biome_at(Map* map, int _x, int _y) {

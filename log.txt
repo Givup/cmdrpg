@@ -1,1 +1,20 @@
 Log opened by: ./src/main.c:80
+
+Opening dialogue: dialogue/0/0.dlg
+There are 4 lines and 3 options.
+Lines: 
+	-MERCHANT-
+	Hello there!
+	Would you like to
+	see my wares?
+Options: 
+	Yes
+	No
+	Maybe
+Longest line: 17
+
+Dialog callback, lines: 9
+
+Dialog callback, lines: 9
+
+Dialog callback, lines: 9

@@ -23,7 +23,7 @@ extern int create_ui(UISystem*, Screen*);
 extern int create_ui_panel(UIPanel*, int, int, int, int, WORD, WORD);
 extern int resize_ui_panel(UIPanel*, int, int, int, int);
 extern int set_margin_ui_panel(UIPanel*, int, int);
-extern int set_ui_panel_callback(UIPanel*, void*, char**(*callbackNULL)(void*, void*));
+extern int set_callback_ui_panel(UIPanel*, void*, char**(*callbackNULL)(void*, void*));
 
 extern int render_ui_panel(UISystem*, UIPanel*, char**);
 

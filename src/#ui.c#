@@ -55,7 +55,7 @@ int render_ui_panel(UISystem* system, UIPanel* panel, char** text) {
   char* buffer = (char*)malloc(panel->w + 1);
 
   for(int y = panel->y;y < panel->y + panel->h; y++) {
-    for(int x = panel->x; x < panel->x + panel->w; x++) {
+     for(int x = panel->x; x < panel->x + panel->w; x++) {
       print_string(system->screen, " ", panel->attributes_clear, x, y, ALIGN_LEFT);
     }
 

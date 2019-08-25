@@ -19,8 +19,8 @@
 #include "player.h"
 #include "winkey.h"
 
-#define AUDIO_DISABLE 0
-#define FAKE_DELAY_COUNT 5000000
+#define AUDIO_DISABLE 1
+#define FAKE_DELAY_COUNT 0 //2500000
 
 // Macros
 // Character screen status print
@@ -195,12 +195,12 @@ int main(int argc, char** argv) {
   UIPanel status_panel;
   create_ui_panel(&status_panel, 0, 0, CSW, CSH, BG_BLACK, FG_WHITE);
   set_margin_ui_panel(&status_panel, 2, 1);
-  set_ui_panel_callback(&status_panel, (void*)&player, status_screen_callback);
+  set_callback_ui_panel(&status_panel, (void*)&player, status_screen_callback);
 
   UIPanel dialog_panel;
   create_ui_panel(&dialog_panel, 0, 0, 0, 0, BG_BLACK, FG_WHITE);
   set_margin_ui_panel(&dialog_panel, 1, 1);
-  set_ui_panel_callback(&dialog_panel, (void*)&player.dialog, dialog_callback);
+  set_callback_ui_panel(&dialog_panel, (void*)&player.dialog, dialog_callback);
 
   // Flags for rendering and ticking
   int should_tick = 1, should_render = 1;
@@ -214,6 +214,7 @@ int main(int argc, char** argv) {
   // Input flags so they only trigger once when pressed
   int space_last = 0, c_last = 0, i_last = 0, r_last = 0;
   int up_last = 0, down_last = 0, right_last = 0, left_last = 0;
+  int add_last = 0, sub_last = 0;
 
   // How much player moved this frame
   int d_x = 0, d_y = 0;
@@ -225,6 +226,7 @@ int main(int argc, char** argv) {
 
   // Flag if 'hurt.raw' should be played
   int play_hurt = 0;
+  float master_vol = 1.0f;
 
   float total_time = 0.0f;
   float dt = 0.0f;
@@ -255,7 +257,7 @@ int main(int argc, char** argv) {
       }
 
       // Play background music 'on loop'
-      mix_audio(&mixer, &music, 1.0f);
+      mix_audio(&mixer, &music, master_vol);
       if(has_ended(&music)) {
 	reset_audio_position(&music);
       }
@@ -285,6 +287,15 @@ int main(int argc, char** argv) {
     if(GetKeyState(VK_ESCAPE) & 0x8000) {
       break;
     }
+
+    // Volume up (Plus key, max 1.0f)
+    if(GetKeyState(WKEY_ADD) & 0x8000 && add_last == 0) {
+      master_vol = min(master_vol + 0.1f, 1.0f);
+    } add_last = GetKeyState(WKEY_ADD) & 0x8000;
+
+    if(GetKeyState(WKEY_SUB) & 0x8000 && sub_last == 0) {
+      master_vol = max(master_vol - 0.1f, 0.0f);
+    } sub_last = GetKeyState(WKEY_SUB) & 0x8000;
 
     // Toggle inventory (Press I)
     if(GetKeyState(WKEY_I) & 0x8000 && i_last == 0) {
@@ -374,16 +385,18 @@ int main(int argc, char** argv) {
 
     space_last = GetKeyState(VK_SPACE) & 0x8000;
 
-    if(GetKeyState(0x57) & 0x8000 && can_move <= 0.0f) {
+    int talking = player.dialog.active;
+
+    if(GetKeyState(0x57) & 0x8000 && can_move <= 0.0f && talking == 0) {
       d_y = -1; // Move up
     }
-    if(GetKeyState(0x41) & 0x8000 && can_move <= 0.0f) {
+    if(GetKeyState(0x41) & 0x8000 && can_move <= 0.0f && talking == 0) {
       d_x = -1; // Move left
     }
-    if(GetKeyState(0x53) & 0x8000 && can_move <= 0.0f) {
+    if(GetKeyState(0x53) & 0x8000 && can_move <= 0.0f && talking == 0) {
       d_y = 1; // Move down
     }
-    if(GetKeyState(0x44) & 0x8000 && can_move <= 0.0f) {
+    if(GetKeyState(0x44) & 0x8000 && can_move <= 0.0f && talking == 0) {
       d_x = 1; // Move right
     }
 
@@ -410,36 +423,15 @@ int main(int argc, char** argv) {
 
       if(d_x != 0 || d_y != 0) should_tick = 1;
 
+
+      MapEntity* entity = get_entity(&map, px, py);
+      if(entity->tile == ENTITY_MONEY) {
+	inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
+	set_entity(&map, px, py, ENTITY_UNDEF, 0);
+      }
+
       env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
     } 
-    /*
-    else if(mode == MODE_BIOME) {
-      if(d_x != 0 || d_y != 0) {
-	try_move_to(&map, (px + d_x + map.width) % map.width, py, &env_status);
-	try_move_to(&map, px, (py + d_y + map.height) % map.height, &env_status);
-
-	if(can_move_to(&map, (px + d_x + map.width) % map.width, py)) {
-	  px += d_x;
-	  should_tick = 1;
-	}
-	if(can_move_to(&map, px, (py + d_y + map.height) % map.height)) {
-	  py += d_y;
-	  should_tick = 1;
-	}
-
-	px = (px + map.width) % map.width;
-	py = (py + map.height) % map.height;
-
-	MapEntity* entity = get_entity(&map, px, py);
-	if(entity->tile == ENTITY_MONEY) {
-	  inventory_add_items(&player.inventory, get_item_by_name(&item_list, "Gold"), entity->metadata);
-	  set_entity(&map, px, py, ENTITY_UNDEF, 0);
-	}
-
-	env_status.temp = get_tile_temp(get_tile_at(&map, px, py));
-      }
-    }
-    */
 
     d_x = d_y = 0;
 
